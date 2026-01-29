@@ -88,33 +88,6 @@ def load_multiver_corpus(data_file, limit=None):
         logger.error(f"读取文件 {filename} 失败: {e}")
         return pd.DataFrame()
         
-def load_syn_tagged_corpus(data_file):
-    """
-    读取 JSONL 格式多版本翻译语料
-    
-    :param data_file: .jsonl 文件路径
-    :return: DataFrame
-    """
-    logger.info(f"正在读取语料: {data_file} ...")
-    
-    if not os.path.exists(data_file):
-        raise FileNotFoundError(f"{data_file} 文件不存在")
-    
-    try:
-        df = pd.read_json(data_file, lines=True)
-        
-        # 验证数据完整性
-        required_cols = ['id', 'annotations']
-        if not all(col in df.columns for col in required_cols):
-            raise ValueError(f"数据格式错误，缺少必要列: {required_cols}")
-            
-        logger.info(f"读取成功！共 {len(df)} 条记录")
-        return df
-        
-    except Exception as e:
-        logger.error(f"读取文件 {filename} 失败: {e}")
-        return pd.DataFrame()
-        
 def load_usas_tags(tag_file):
     """
     读取语义标签文件，转换为 Prompt 可用的字符串
