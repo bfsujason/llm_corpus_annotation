@@ -1,0 +1,22 @@
+# === 大模型设置 ===
+
+# 大模型 URL
+LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+
+# 大模型 API Key
+LLM_API_KEY=sk-**************************************
+
+# 大模型名称
+# qwen-flash|qwen-plus|qwen3-max|deepseek-v3.2|glm-4.7
+LLM_MODEL_NAME=qwen-plus
+
+# 大模型缓存
+LLM_CACHE_DIR=data/llm_cache
+
+# === 语义标注设置 ===
+    
+# 英文语义标签
+EN_SEMTAG_PATH=data/res/en_semtag.txt
+
+# 中文语义标签
+ZH_SEMTAG_PATH=data/res/zh_semtag.txt

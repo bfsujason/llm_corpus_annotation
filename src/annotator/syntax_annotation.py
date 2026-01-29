@@ -1,7 +1,9 @@
 # bfsujason@163.com
-# python -m src.annotator.syntax_annotation
 
 import logging
+from tqdm import tqdm
+from collections import defaultdict
+
 import hanlp
 from hanlp.utils.rules import split_sentence
 
@@ -118,59 +120,46 @@ class SyntaxAnnotator:
         print(f"\n[{lang_trans}模型支持的标注任务]")
         print("详见：https://hanlp.hankcs.com/docs/annotations/index.html")
         print(f"[{lang_trans}模型支持]: {list(self.pipeline.tasks.keys())}")
+        
+# 调用 HanLP 本地模型批量标注文本，结果保存于 results 列表
+# 参数 data：DataFrame 格式的数据
+# 参数 zh_annotator：HanLP 中文标注模型接口
+# 参数 en_annotator：HanLP 英文标注模型接口
+def annotate_data(data, annotator):
+    results = []
 
-# === 单元测试 ===
-if __name__ == "__main__":
+    # 逐行遍历所有数据
+    for index, row in tqdm(data.iterrows(), total=len(data), desc="Syntax Tagging"):
+        try:
+            # 解析数据
+            # 提取汉语原文和各版本译文
+            record_id = row['id']
+            src_text = row['source']['raw_text']
+            targets = row['targets']
+            
+            # 标注英文译文
+            # 初始化 record 字典
+            record = defaultdict(lambda: defaultdict(dict))
 
-    # 打印日志信息
-    logging.basicConfig(level=logging.INFO)
+            record["id"] = f"{index:06d}"
+            record["source"]["raw_text"] = src_text
+            
+            # 遍历所有译本
+            for ver, tgt_dicts in targets.items():
+                tgt_text = tgt_dicts['raw_text']
+                tgt_annos = annotator.annotate(tgt_text, mode='light')
+                #target_annos[version_name] = en_anno
+                record["targets"][ver]["raw_text"] = tgt_text
+                record["targets"][ver]["sentences"] = tgt_annos['sentences']
+                record["targets"][ver]["tokens"] = tgt_annos['tokens']
+                record["targets"][ver]["pos"] = tgt_annos['pos']
+                record["targets"][ver]["lem"] = tgt_annos['lem']
+                record["targets"][ver]["dep"] = tgt_annos['dep']
 
-    # 初始化模型
-    zh_annotator = SyntaxAnnotator(lang='Chinese')
-    en_annotator = SyntaxAnnotator(lang='English')
+            results.append(record)
+            
+        except Exception as e:
+            print(f"Error at index {index}: {e}")
+            continue
     
-    # 打印模型支持的标注任务
-    zh_annotator.print_model_capabilities()
-    en_annotator.print_model_capabilities()
-    
-    print("\n" + "=" * 70)
-    print("测试 1: 中文多句处理 (自动分句 + POS/PKU + DEP/SD 标注)")
-    print("=" * 70)
-
-    # --- 测试中文 ---
-    zh_text = "那天晚上我没走掉。 陈清扬把我拽住，以伟大友谊的名义叫我留下来。"
-    print(f"[ZH Input]: {zh_text}")
-    
-    zh_doc = zh_annotator.annotate(zh_text, mode='light')
-    
-    # 遍历结果
-    if zh_doc:
-        for i, sent_text in enumerate(zh_doc['sentences']):
-            print(f"\n>> [句子 {i+1}]: {sent_text}")
-            print(f"   Tokens:  {zh_doc['tokens'][i]}")
-            print(f"   POS:     {zh_doc['pos'][i]}")
-            dep_sample = zh_doc['dep'][i][:3] 
-            print(f"   Dep(Top3): {dep_sample} ...")
-    else:
-        print("测试失败，请查看日志信息调试程序。")
-
-    print("\n" + "=" * 70)
-    print("测试 2: 英文多句处理 (自动分句 + POS/PTB + LEMMA + DEP/UD 标注)")
-    print("=" * 70)
-
-    # --- 测试英文 ---
-    en_text = "I did not leave that night—Chen Qingyang caught me and asked me to stay in the name of our great friendship."
-    print(f"[EN Input]: {en_text}")
-    
-    en_doc = en_annotator.annotate(en_text, mode='light')
-    
-    # 遍历结果
-    if en_doc:
-        for i, sent_text in enumerate(en_doc['sentences']):
-            print(f"\n>> [Sentence {i+1}]: {sent_text}")
-            print(f"   Tokens:  {en_doc['tokens'][i]}")
-            print(f"   Lemma:   {en_doc['lem'][i]}") 
-            print(f"   POS:     {en_doc['pos'][i]}")
-            print(f"   Dep(Top3): {en_doc['dep'][i][:3]} ...")
-    else:
-        print("测试失败，请查看日志信息调试程序。")
+    return results

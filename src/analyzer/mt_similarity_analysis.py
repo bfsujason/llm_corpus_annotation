@@ -1,5 +1,4 @@
 # bfsujason@163.com
-# python -m src.analyzer.mt_similarity_analysis
 
 import os
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -46,9 +45,9 @@ class MTSimilarityAnalyzer:
                 
                 try:
                     record = json.loads(line)
-                    targets = record.get('targets', {}) # human, deepseek, qwen
-                    source = record.get('source', '')
-                    rec_id = record.get('id', '')
+                    targets = record['targets']
+                    source = record['source']['raw_text']
+                    rec_id = record['id']
                     
                     # 获取译文版本
                     # 初始化数据字典的键值
@@ -56,16 +55,15 @@ class MTSimilarityAnalyzer:
                         self.versions = list(targets.keys())
                         for v in self.versions: temp_data[v] = []
                     
-                    # 确保所有版本都有译文
-                    if all(targets.get(v) for v in self.versions):
-                        for v in self.versions:
-                            temp_data[v].append(targets[v])
+                    # 获取所有版本译文
+                    for v in self.versions:
+                        temp_data[v].append(targets[v]['raw_text'])
                             
-                        # 记录元数据
-                        self.id_list.append(rec_id)
-                        self.source_list.append(source)
-                        
-                        count += 1
+                    # 记录元数据
+                    self.id_list.append(rec_id)
+                    self.source_list.append(source)
+                    
+                    count += 1
                         
                 except Exception:
                     continue
@@ -153,7 +151,7 @@ class MTSimilarityAnalyzer:
                     
         return pd.DataFrame(matrix, index=self.versions, columns=self.versions)
         
-    def get_divergent_examples(self, ver_a, ver_b, metric='string', top_n=5):
+    def get_examples(self, ver_a, ver_b, metric='string', top_n=5):
         """
         查找两个版本之间相似度最低的例句
         
@@ -211,7 +209,7 @@ class MTSimilarityAnalyzer:
         return results
     
     @staticmethod
-    def print_divergence(examples, metric_name, ver_a, ver_b):
+    def print_examples(examples, metric_name, ver_a, ver_b):
         print(f"\n=== {metric_name} 相似度最低的例句  Top 3 ===")
         for i, ex in enumerate(examples[:3]):
             print(f"\n[{i+1}] ID: {ex['id']} | Sim Score: {ex['score']:.4f}")
@@ -219,36 +217,5 @@ class MTSimilarityAnalyzer:
             print("-" * 60)
             print(f"{ver_a.capitalize()}: {ex['ver_a']}")
             print(f"{ver_b.capitalize()}: {ex['ver_b']}")
-            print("=" * 60)    
-        
-# === 单元测试 ===
-if __name__ == "__main__":
-
-    # 打印日志信息
-    logging.basicConfig(level=logging.INFO)
-    
-    # 加载数据
-    data_file = 'data/output/0_mt_generation.jsonl'
-    analyzer = MTSimilarityAnalyzer(data_file)
-    analyzer.load_data(limit=10)
-    
-    # 计算字符串相似度矩阵
-    df_str_sim = analyzer.get_string_similarity_matrix()
-    print(f"\n计算完成，结果如下：\n{df_str_sim}\n")
-    
-    # 计算语义相似度矩阵
-    df_sem_sim = analyzer.get_embedding_similarity_matrix()
-    print(f"\n计算完成，结果如下：\n{df_sem_sim}")
-    
-    # 查找典型例句
-    ver_a = 'human'
-    ver_b = 'deepseek-v3.2'
-    
-    metric = 'string'
-    diffs_str = analyzer.get_divergent_examples(ver_a, ver_b, metric)
-    analyzer.print_divergence(diffs_str, "表层形式 (String)", ver_a, ver_b)
-    
-    metric = 'semantic'
-    diffs_sem = analyzer.get_divergent_examples(ver_a, ver_b, metric)
-    analyzer.print_divergence(diffs_sem, "深层语义 (Semantic)", ver_a, ver_b)
+            print("=" * 60)
     

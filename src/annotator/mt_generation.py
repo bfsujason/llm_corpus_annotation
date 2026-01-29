@@ -1,8 +1,9 @@
 # bfsujason@163.com
-# python -m src.annotator.mt_generation
 
 import json
 import logging
+from tqdm import tqdm
+from collections import defaultdict
 from src.llm_client import LLMClient
 from src.prompt import mt_generation_prompt
 
@@ -55,33 +56,40 @@ class MTGenerator:
         except Exception as e:
             logger.error(f"翻译引擎错误：{e}")
             return None
-            
-# === 单元测试 ===
-if __name__ == "__main__":
 
-    # 打印日志信息
-    logging.basicConfig(level=logging.INFO)
-    
-    # 初始化翻译模型
-    src_lang = "Chinese"
-    tgt_lang = "English"
-    model = "qwen-plus" 
-    translator = MTGenerator(
-        src_lang=src_lang,
-        tgt_lang=tgt_lang,
-        model=model,
-    )
-    
-    # 输入原文
-    src_text = "女婴啼哭不休。她母亲温言相呵，女婴只是大哭。"
-    print(f"\n[原文]：{src_text}\n")
-    
-    # 调用大模型生成译文
-    result = translator.translate(src_text)
-    
-    # 输出翻译结果
-    if result:
-        print("测试成功！模型返回译文：")
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    else:
-        print("测试失败，请查看日志信息调试程序")
+# === 核心函数：translate_data ===
+# 调用大模型 API 批量翻译原文
+
+# 参数 data：DataFrame 格式的数据
+# 参数 models：大模型 API 接口
+def translate_data(data, models):
+    results = []
+
+    # 逐行遍历所有数据
+    for index, row in tqdm(data.iterrows(), total=len(data), desc="Translating"):
+
+        # 提取汉语原文和人类译文
+        src_text = row["source"]
+        human_trans = row["target"]
+
+        # 初始化 record 字典
+        record = defaultdict(lambda: defaultdict(dict))
+
+        record["id"] = f"{index:06d}"
+        record["source"]["raw_text"] = src_text
+        record["targets"]["human"]["raw_text"] = human_trans
+        
+        # 调用大模型 API 翻译原文
+        try:
+            # 按所选模型
+            # 依次生成不同版本的机器译文
+            for model in models.keys():
+                model_trans = models[model].translate(src_text)
+                record["targets"][model]["raw_text"] = model_trans['target_text']
+            # 将翻译结果保存于 results 列表
+            results.append(record)
+        except Exception as e:
+            print(f"Error at index {index}: {e}")
+            continue
+                
+    return results

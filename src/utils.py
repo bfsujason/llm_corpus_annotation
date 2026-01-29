@@ -1,7 +1,7 @@
 # bfsujason@163.com
-# python -m src.utils
 
 import os
+import json
 import glob
 import logging
 import numpy as np
@@ -10,11 +10,12 @@ import pandas as pd
 # 配置日志
 logger = logging.getLogger(__name__)
 
-def load_corpus(data_dir):
+def load_corpus(data_dir, limit=None):
     """
     读取 TSV 格式双语语料
     
     :param data_dir: .tsv 文件目录
+    :param limit: 限定读取数据行数
     :return: DataFrame
     """
     logger.info(f"正在读取语料: {data_dir} ...")
@@ -33,11 +34,12 @@ def load_corpus(data_dir):
             # on_bad_lines='skip': 跳过格式错误的行
             # quoting=3: 避免引号导致解析错误
             temp_df = pd.read_csv(filename, sep='\t', header=None, 
-                                  names=['source_text', 'target_text'], 
+                                  names=['source', 'target'], 
                                   on_bad_lines='skip', quoting=3)
             
             # 添加文件名列
-            temp_df['file_id'] = os.path.basename(filename)
+            #temp_df['file_id'] = os.path.basename(filename)
+            
             df_list.append(temp_df)
             
         except Exception as e:
@@ -48,14 +50,16 @@ def load_corpus(data_dir):
         full_corpus = pd.concat(df_list, ignore_index=True)
         
         # 替换空值
-        full_corpus = full_corpus.replace({np.nan: None})
-        
+        # full_corpus = full_corpus.replace({np.nan: None})
+        full_corpus = full_corpus.dropna()
+        if limit:
+            full_corpus = full_corpus.head(limit)
         logger.info(f"读取成功！共 {len(full_corpus)} 条记录")
         return full_corpus
     else:
         return pd.DataFrame()
         
-def load_multiver_corpus(data_file):
+def load_multiver_corpus(data_file, limit=None):
     """
     读取 JSONL 格式多版本翻译语料
     
@@ -72,6 +76,35 @@ def load_multiver_corpus(data_file):
         
         # 验证数据完整性
         required_cols = ['id', 'source', 'targets']
+        if not all(col in df.columns for col in required_cols):
+            raise ValueError(f"数据格式错误，缺少必要列: {required_cols}")
+            
+        if limit:
+            df = df.head(limit)
+        logger.info(f"读取成功！共 {len(df)} 条记录")
+        return df
+        
+    except Exception as e:
+        logger.error(f"读取文件 {filename} 失败: {e}")
+        return pd.DataFrame()
+        
+def load_syn_tagged_corpus(data_file):
+    """
+    读取 JSONL 格式多版本翻译语料
+    
+    :param data_file: .jsonl 文件路径
+    :return: DataFrame
+    """
+    logger.info(f"正在读取语料: {data_file} ...")
+    
+    if not os.path.exists(data_file):
+        raise FileNotFoundError(f"{data_file} 文件不存在")
+    
+    try:
+        df = pd.read_json(data_file, lines=True)
+        
+        # 验证数据完整性
+        required_cols = ['id', 'annotations']
         if not all(col in df.columns for col in required_cols):
             raise ValueError(f"数据格式错误，缺少必要列: {required_cols}")
             
@@ -109,26 +142,8 @@ def load_usas_tags(tag_file):
     
     # 将列表合并为字符串
     return "\n".join(tag_list)
-
-# === 单元测试 ===
-if __name__ == "__main__":
-
-    # 打印日志信息
-    logging.basicConfig(level=logging.INFO)
     
-    print("1. 测试 load_corpus：\n")
-    df = load_corpus(data_dir="data/raw")
-    print(f"示例如下：\n{df.head()}\n")
-    
-    print("2. 测试 load_multiver_corpus：\n")
-    df = load_multiver_corpus(data_file="data/output/0_mt_generation.jsonl")
-    print(f"示例如下：\n{df.head()}\n")
-    
-    print("3. 测试 load_usas_tags (英文)：\n")
-    tags = load_usas_tags(tag_file="data/res/en_semtag.txt")
-    print(f"示例如下：\n{tags[:100]}\n")
-    
-    print("4. 测试 load_usas_tags (中文)：\n")
-    tags = load_usas_tags(tag_file="data/res/zh_semtag.txt")
-    print(f"示例如下：\n{tags[:100]}\n")
-    
+def save_results(results, out_file):
+     with open(out_file, "wt", encoding="utf-8") as fout:
+        for record in results:
+            fout.write(json.dumps(record, ensure_ascii=False) + "\n")

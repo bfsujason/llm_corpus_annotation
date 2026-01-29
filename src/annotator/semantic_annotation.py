@@ -3,6 +3,8 @@
 
 import json
 import logging
+from tqdm import tqdm
+from collections import defaultdict
 
 from src.config import Config
 from src.utils import load_usas_tags
@@ -78,22 +80,32 @@ class SemanticAnnotator:
         except Exception as e:
             logging.error(f"Semantic tagging error: {e}")
             return ()
+    
+def annotate_data(data, annotator):
+    results = []
+    for index, row in tqdm(data.iterrows(), total=len(data), desc="Semantic Tagging"):
+        try:
+            # 解析数据
+            record_id = row['id']
+            src_text = row['source']['raw_text']
+            targets = row['targets']
 
-# === 简单的测试入口 ===
-if __name__ == "__main__":
-    
-    # 打印日志信息
-    logging.basicConfig(level=logging.INFO)
-    
-    # 测试英文语义标注
-    lang = 'English'
-    model = 'glm-4.7'
-    annotator = SemanticAnnotator(lang=lang, model=model)
-    result = annotator.annotate("This is a test.")
-    print(json.dumps(result, indent=2, ensure_ascii=False))
-    
-    # 测试中文语义标注
-    lang = 'Chinese'
-    annotator = SemanticAnnotator(lang=lang, model=model)
-    result = annotator.annotate("这是一个测试。")
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+            # 初始化 record 字典
+            record = defaultdict(lambda: defaultdict(dict))
+            record["id"] = f"{index:06d}"
+            record["source"]["raw_text"] = src_text
+
+            # 遍历所有译本
+            for ver, tgt_dicts in targets.items():
+                tgt_text = tgt_dicts['raw_text']
+                usas_tags = annotator.annotate(tgt_text)
+                record["targets"][ver]["raw_text"] = tgt_text
+                record["targets"][ver]["usas_tags"] = usas_tags
+
+            results.append(record)
+            
+        except Exception as e:
+            print(f"Error at index {index}: {e}")
+            continue
+
+    return results

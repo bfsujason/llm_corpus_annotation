@@ -4,18 +4,18 @@
 import os
 from dotenv import load_dotenv
 
-# 加载根目录下的 .env 配置文件
-load_dotenv()
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 加载根目录下的 config 配置文件
+load_dotenv(os.path.join(PROJECT_ROOT, 'config'))
 
 class Config:
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
     # === 大模型设置 ===
     
     # 阿里云百炼大模型：https://bailian.console.aliyun.com/
     LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
     LLM_API_KEY = os.getenv("LLM_API_KEY", "EMPTY")
-    LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "qwen-flash")
+    LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "qwen-plus")
     
     # 缓存目录设置
     _LLM_CACHE_DIR = os.getenv("LLM_CACHE_DIR", "data/llm_cache")
