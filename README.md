@@ -16,7 +16,8 @@ We are grateful to the following scholars for their valuable insights and sugges
 ### Excellent NLP Tools
 - **[CLAWS7](https://ucrel.lancs.ac.uk/claws/)** - UCREL's highly accurate part-of-speech tagger
 - **[HanLP](https://github.com/hankcs/HanLP)** - Multilingual NLP library with strong performance on Chinese text processing
-- **[PyMUSAS](https://github.com/UCREL/pymusas)** - Python Multilingual UCREL Semantic Analysis System for semantic tagging
+- **[Multilingual-USAS](https://github.com/UCREL/Multilingual-USAS)** - UCREL's Multilingual USAS lexicon
+- **[PyMUSAS](https://github.com/UCREL/pymusas)** - Python Multilingual USAS for semantic tagging
 - **[spaCy](https://spacy.io/)** - Industrial-strength Natural Language Processing in Python
 - **[Stanza](https://stanfordnlp.github.io/stanza/)** - Stanford NLP Group's official Python library with neural network models for many languages
 
@@ -27,7 +28,7 @@ We are grateful to the following scholars for their valuable insights and sugges
 The annotation schemas, linguistic categories, and evaluation criteria used in our LLM prompts draw heavily from:
 - The part-of-speech tagging systems implemented in CLAWS7, HanLP and spaCy
 - The dependency parsing approaches from Stanza
-- The semantic tagging framework from UCREL's semantic analysis work (PyMUSAS)
+- The semantic tagging framework from UCREL's semantic analysis work (PyMUSAS & Multilingual-USAS)
 
 **This project explores how LLMs can be leveraged for corpus annotation when guided by the expert knowledge encoded in these tools.**
 
