@@ -174,6 +174,7 @@ class LLMClient:
 
             # 获取生成内容
             content = response.choices[0].message.content
+            #print(content)
             
             # 解析 JSON
             result = self._parse_json(content)
