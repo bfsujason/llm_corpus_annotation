@@ -25,4 +25,4 @@ The annotation schemas, linguistic categories, and evaluation criteria used in o
 - The dependency parsing approaches from Stanza
 - The semantic tagging framework from UCREL's semantic analysis work (PyMUSAS)
 
-**This project explores how LLMs can be leveraged for corpus annotation when guided by the expert knowledge encoded in these tools.
+**This project explores how LLMs can be leveraged for corpus annotation when guided by the expert knowledge encoded in these tools.**
