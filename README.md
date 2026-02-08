@@ -40,11 +40,7 @@ This project is ongoing and has several areas that require further development:
 
 - **Prompt Engineering**: The LLM prompts used in experiments need further refinement and optimization. Current prompts may not fully capture the nuances of expert annotation practices.
 
-- **Limited Corpus Diversity**: Experiments have been conducted on a limited range of corpus types. More comprehensive testing is needed across:
-  - Different genres (academic, literary, conversational, technical, etc.)
-  - Various domains (medical, legal, social media, news, etc.)
-  - Multiple languages and language varieties
-  - Different text lengths and complexity levels
+- **Limited Corpus Diversity**: Experiments have been conducted on a limited range of corpus types. More comprehensive testing is needed.
 
 - **Reproducibility**: LLM outputs can vary between runs. More work is needed to ensure consistency and reproducibility of annotations.
 
