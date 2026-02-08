@@ -4,7 +4,7 @@ A study of corpus linguistics annotation using Large Language Models (LLMs).
 
 ## Overview
 
-This repository explores the application of LLMs for annotation tasks in corpus and computational linguistics. Our experiments demonstrate that LLMs can achieve competitive performance on certain corpus annotation tasks compared to traditional rule-based and statistical NLP tools. However, this work builds directly upon the foundational research and methodologies developed by the creators of these tools.
+This repository explores the application of LLMs for annotation tasks in corpus linguistics. Our experiments demonstrate that LLMs can achieve competitive performance on certain corpus annotation tasks compared to traditional rule-based and statistical NLP tools. However, this work builds directly upon the foundational research and methodologies developed by the creators of these tools.
 
 ## Acknowledgments & Credits
 
