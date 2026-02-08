@@ -8,6 +8,13 @@ This repository explores the application of LLMs for annotation tasks in corpus 
 
 ## Acknowledgments & Credits
 
+### Academic Advisors
+
+We are grateful to the following scholars for their valuable insights and suggestions:
+
+- **Dr. Dingjia Liu** - Beijing Foreign Studies University
+- **Professor Shuangzi Pang** - Shanghai Jiaotong University
+
 ### Excellent NLP Tools
 
 - **[HanLP](https://github.com/hankcs/HanLP)** - Multilingual NLP library with strong performance on Chinese text processing
