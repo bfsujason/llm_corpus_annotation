@@ -14,19 +14,18 @@ We are grateful to the following scholars for their valuable insights and sugges
 - **Professor Shuangzi Pang** - Shanghai Jiaotong University
 
 ### Excellent NLP Tools
-
+- **[CLAWS7](http://ucrel.lancs.ac.uk/claws7.html)** - UCREL's Constituent Likelihood Automatic Word-tagging System, a highly accurate part-of-speech tagger
 - **[HanLP](https://github.com/hankcs/HanLP)** - Multilingual NLP library with strong performance on Chinese text processing
 - **[PyMUSAS](https://github.com/UCREL/pymusas)** - Python Multilingual UCREL Semantic Analysis System for semantic tagging
-- **[Stanza](https://stanfordnlp.github.io/stanza/)** - Stanford NLP Group's official Python library with neural network models for many languages
 - **[spaCy](https://spacy.io/)** - Industrial-strength Natural Language Processing in Python
-
+- **[Stanza](https://stanfordnlp.github.io/stanza/)** - Stanford NLP Group's official Python library with neural network models for many languages
 
 ### Important Note on Methodology
 
 **The LLM prompts used in this project are directly informed by and based on the annotation frameworks, methodologies, and linguistic insights developed by the creators of the above tools.** While LLMs may show competitive performance on certain tasks, this success stands on the shoulders of decades of corpus/commputational linguistics research embodied in these tools.
 
 The annotation schemas, linguistic categories, and evaluation criteria used in our LLM prompts draw heavily from:
-- The part-of-speech tagging systems implemented in HanLP and spaCy
+- The part-of-speech tagging systems implemented in CLAWS7, HanLP and spaCy
 - The dependency parsing approaches from Stanza
 - The semantic tagging framework from UCREL's semantic analysis work (PyMUSAS)
 
