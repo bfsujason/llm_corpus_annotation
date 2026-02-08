@@ -14,7 +14,7 @@ We are grateful to the following scholars for their valuable insights and sugges
 - **Professor Shuangzi Pang** - Shanghai Jiaotong University
 
 ### Excellent NLP Tools
-- **[CLAWS7](http://ucrel.lancs.ac.uk/claws7.html)** - UCREL's highly accurate part-of-speech tagger
+- **[CLAWS7](https://ucrel.lancs.ac.uk/claws/)** - UCREL's highly accurate part-of-speech tagger
 - **[HanLP](https://github.com/hankcs/HanLP)** - Multilingual NLP library with strong performance on Chinese text processing
 - **[PyMUSAS](https://github.com/UCREL/pymusas)** - Python Multilingual UCREL Semantic Analysis System for semantic tagging
 - **[spaCy](https://spacy.io/)** - Industrial-strength Natural Language Processing in Python
