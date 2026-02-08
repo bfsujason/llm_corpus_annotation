@@ -31,3 +31,23 @@ The annotation schemas, linguistic categories, and evaluation criteria used in o
 - The semantic tagging framework from UCREL's semantic analysis work (PyMUSAS)
 
 **This project explores how LLMs can be leveraged for corpus annotation when guided by the expert knowledge encoded in these tools.**
+
+## Limitations and Future Work
+
+This project is ongoing and has several areas that require further development:
+
+### Limitations
+
+- **Prompt Engineering**: The LLM prompts used in experiments need further refinement and optimization. Current prompts may not fully capture the nuances of expert annotation practices.
+
+- **Limited Corpus Diversity**: Experiments have been conducted on a limited range of corpus types. More comprehensive testing is needed across:
+  - Different genres (academic, literary, conversational, technical, etc.)
+  - Various domains (medical, legal, social media, news, etc.)
+  - Multiple languages and language varieties
+  - Different text lengths and complexity levels
+
+- **Reproducibility**: LLM outputs can vary between runs. More work is needed to ensure consistency and reproducibility of annotations.
+
+- **Computational Cost**: LLM-based annotation may be more expensive and time-consuming than traditional tools for large-scale corpus annotation.
+
+- **Evaluation Metrics**: Current evaluation metrics may not fully capture the quality differences between LLM and traditional tool outputs.
