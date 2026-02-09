@@ -23,7 +23,7 @@ We are grateful to the following scholars for their valuable insights and sugges
 
 ### Important Note on Methodology
 
-**The LLM prompts used in this project are directly informed by and based on the annotation frameworks, methodologies, and linguistic insights developed by the creators of the above tools.** While LLMs may show competitive performance on certain tasks, this success stands on the shoulders of decades of corpus/commputational linguistics research embodied in these tools.
+**The LLM prompts used in this project are directly informed by and based on the annotation frameworks, methodologies, and linguistic insights developed by the creators of the above tools.** While LLMs may show competitive performance on certain tasks, this success stands on the shoulders of decades of corpus/computational linguistics research embodied in these tools.
 
 The annotation schemas, linguistic categories, and evaluation criteria used in our LLM prompts draw heavily from:
 - The part-of-speech tagging systems implemented in CLAWS7, HanLP and spaCy
