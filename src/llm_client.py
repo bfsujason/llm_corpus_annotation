@@ -22,7 +22,7 @@ class LLMClient:
         初始化客户端
         从 Config 中读取 API_KEY, BASE_URL 和 CACHE_DIR
         
-        :param model: 模型名称 (默认为 qwen-plus)
+        :param model: 模型名称 (默认为 deepseek-v3.2)
         """
         logger.info("初始化大模型客户端 ...")
         
