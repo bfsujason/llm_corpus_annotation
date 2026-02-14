@@ -122,7 +122,7 @@ class DEPParser:
         """
         :param text:    输入文本 str 
         :return:        标注结果 dict
-                        [text]:  输入文本 str
+                        [text]:     输入文本 str
                         [sent]:     分句结果 [list]
                         [tok]:      分词结果 [list[list]]
                         [dep]:      依存关系 [list[list]]
