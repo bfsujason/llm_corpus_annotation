@@ -5,7 +5,7 @@
 This repository explores the application of LLMs for annotation tasks in corpus linguistics. It provides tools and experiments for automating three core annotation workflows:
 
 - **POS Tagging** — Part-of-speech tagging guided by established tagsets such as [PKU](http://sighan.cs.uchicago.edu/bakeoff2005/data/pku_spec.pdf) and [CLAWS7](https://ucrel.lancs.ac.uk/claws7tags.html)
-- **Dependency Parsing** — Syntactic parsing following [Universal Dependencies](https://universaldependencies.org/u/dep/) conventions
+- **Dependency Parsing** — Syntactic parsing following [Universal Dependency 2.0](https://universaldependencies.org/u/dep/)
 - **Semantic Tagging** — Semantic category annotation based on the [UCREL Semantic Analysis System](https://ucrel.lancs.ac.uk/usas/)
 
 ## Acknowledgments & Credits
