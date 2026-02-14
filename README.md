@@ -52,17 +52,18 @@ from src.annotator.pos_tagger import POSTagger
 from src.annotator.dep_parser import DEPParser
 from src.annotator.sem_tagger import SEMTagger
 
-# === LLM setting ===
+# === LLM Setting ===
 
 # set tagging mode
 # llm | local
-mode = 'llm'
+mode = "llm"
 
 # specify model name
 # deepseek-v3.2 | kimi-k2.5 | glm-4.7 | qwen3-max
-llm_model = 'deepseek-v3.2
+llm_model = "deepseek-v3.2"
 
 # turn on/off LLM thinking mode
+# True | False
 enable_thinking = False
 
 # === Input text to be annotated ===
@@ -76,8 +77,8 @@ en_text = "I did not leave that night - Chen Qingyang caught me and asked me to 
 # --- Chinese POS tagging ---
 
 # choose language and tagset
-lang = 'chinese'
-tagset = 'pku'
+lang = "chinese"
+tagset = "pku"
 
 # load Chinse POS tagger
 llm_zh_pku_tagger = POSTagger(
@@ -94,8 +95,8 @@ llm_zh_pku_tagger.tag(zh_text)
 # --- English POS tagging ---
 
 # choose language and tagset
-lang = 'english'
-tagset = 'claws'
+lang = "english"
+tagset = "claws"
 
 # load English POS tagger
 llm_en_claws_tagger = POSTagger(
@@ -114,8 +115,8 @@ llm_en_claws_tagger.tag(en_text)
 # --- Chinese dependency parsing ---
 
 # choose language and tagset
-lang = 'chinese'
-tagset = 'ud'
+lang = "chinese"
+tagset = "ud"
 
 # load Chinese dependency parser
 llm_zh_ud_parer = DEPParser(
@@ -132,8 +133,8 @@ llm_zh_ud_parer.tag(zh_text)
 # --- English dependency parsing ---
 
 # choose language and tagset
-lang = 'english'
-tagset = 'ud'
+lang = "english"
+tagset = "ud"
 
 # load English dependency parser
 llm_en_ud_parer = DEPParser(
@@ -152,8 +153,8 @@ llm_en_ud_parer.tag(en_text)
 # --- Chinese semantic tagging ---
 
 # choose language and tagset
-lang = 'chinese'
-tagset = 'usas'
+lang = "chinese"
+tagset = "usas"
 
 # load Chinese semantic tagger
 llm_zh_usas_tagger = SEMTagger(
@@ -170,8 +171,8 @@ llm_zh_usas_tagger.tag(zh_text)
 # --- English semantic tagging ---
 
 # choose language and tagset
-lang = 'english'
-tagset = 'usas'
+lang = "english"
+tagset = "usas"
 
 # load English semantic tagger
 llm_en_usas_tagger = SEMTagger(
