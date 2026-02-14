@@ -16,7 +16,6 @@ This repository explores the application of LLMs for annotation tasks in corpus 
 
 **Create a new API key** — Genrate a new API key (it starts with `sk-`) and store it the file [config](./config).
 
-
 ## Acknowledgments & Credits
 
 ### Academic Advisors
