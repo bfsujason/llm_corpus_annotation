@@ -165,7 +165,6 @@ class SEMTagger:
             text=json.dumps(text, ensure_ascii=False),
             #tokens=json.dumps(toks, ensure_ascii=False),
         )
-        #print(prompt)
         
         # 调用大模型
         try:
@@ -173,7 +172,7 @@ class SEMTagger:
                 prompt=prompt,
                 json_output=True,
             )
-            #print(response)
+
             tokens, tags = self._convert_llm_response(response)
             result['tok'] = tokens
             result['usas'] = tags
