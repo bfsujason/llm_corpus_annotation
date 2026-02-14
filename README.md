@@ -4,9 +4,9 @@
 
 This repository explores the application of LLMs for annotation tasks in corpus linguistics. It provides tools and experiments for automating three core annotation workflows:
 
-- **POS Tagging** — Part-of-speech tagging guided by established tagsets such as PKU and CLAWS7
-- **Dependency Parsing** — Syntactic parsing following Universal Dependencies conventions
-- **Semantic Tagging** — Semantic category annotation based on the UCREL Semantic Analysis System
+- **POS Tagging** — Part-of-speech tagging guided by established tagsets such as [PKU](http://sighan.cs.uchicago.edu/bakeoff2005/data/pku_spec.pdf) and [CLAWS7](https://ucrel.lancs.ac.uk/claws7tags.html)
+- **Dependency Parsing** — Syntactic parsing following [Universal Dependencies](https://universaldependencies.org/u/dep/) conventions
+- **Semantic Tagging** — Semantic category annotation based on the [UCREL Semantic Analysis System](https://ucrel.lancs.ac.uk/usas/)
 
 ## Acknowledgments & Credits
 
@@ -18,7 +18,7 @@ We are grateful to the following scholars for their valuable insights and sugges
 - **Professor Shuangzi Pang** - Shanghai Jiaotong University
 
 ### Excellent NLP Tools
-- **[CLAWS7](https://ucrel.lancs.ac.uk/claws/)** - UCREL's highly accurate part-of-speech tagger
+- **[CLAWS7](https://ucrel-api.lancaster.ac.uk/claws/free.html)** - UCREL's highly accurate part-of-speech tagger
 - **[HanLP](https://github.com/hankcs/HanLP)** - Multilingual NLP library with strong performance on Chinese text processing
 - **[Multilingual-USAS](https://github.com/UCREL/Multilingual-USAS)** - UCREL's Multilingual USAS lexicon
 - **[PyMUSAS](https://github.com/UCREL/pymusas)** - Python Multilingual USAS for semantic tagging
