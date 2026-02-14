@@ -2,7 +2,11 @@
 
 ## Overview
 
-This repository explores the application of LLMs for annotation tasks in corpus linguistics.
+This repository explores the application of LLMs for annotation tasks in corpus linguistics. It provides tools and experiments for automating three core annotation workflows:
+
+- **POS Tagging** — Part-of-speech tagging guided by established tagsets such as PKU and CLAWS7
+- **Dependency Parsing** — Syntactic parsing following Universal Dependencies conventions
+- **Semantic Tagging** — Semantic category annotation based on the UCREL Semantic Analysis System
 
 ## Acknowledgments & Credits
 
