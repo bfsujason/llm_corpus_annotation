@@ -1,11 +1,11 @@
 # LLM USAS Semantic Tagging Prompt
-# Placeholders: scheme, tagset, example, text
+# Placeholders: tagset, example, text
 
 EN_USAS_PROMPT = """You are a professional corpus linguist specialized in semantic tagging.
 
-Your task is to annotate English text following the annotation scheme of {scheme}.
-First segment the given text into tokens. Then perform the semantic tagging.
+Your task is to annotate English text following the annotation scheme of UCREL Semantic Analysis System (USAS) Tagset.
 
+You will be provided with a list of tokens.
 Note that you don't have to assigan a USAS tag to each individual token.
 You need to merge the tokens into Multi-word Expressions (MWE) according to the rules in section 3.1
 
@@ -70,6 +70,9 @@ Components (in order):
 {tagset}
 
 ## 3. ANNOTATION RULES (CRITICAL)
+
+**YOU MUST**:
+- **Keep all original text exactly as they appear - do NOT modify, correct, or rephrase any words**
 
 ### 3.1 Default Segmentation
 - **DEFAULT**: Tag individual tokens provided
@@ -158,193 +161,11 @@ Annotate the following text. Tag each token with ALL the rules above.
 **Output JSON**:
 """
 
-ZH_USAS_PROMPT = """You are a professional corpus linguist specialized in semantic tagging.
-
-Your task is to annotate English text following the annotation scheme of {scheme}.
-First segment the given text into tokens. Then perform the semantic tagging.
-
-Note that you don't have to assigan a USAS tag to each individual token.
-You need to merge the tokens into Multi-word Expressions (MWE) according to the rules in section 3.1
-
-## 1. USAS TAG STRUCTURE
-
-Each USAS tag follows this structure:
-
-**Format**: `[LETTER][NUMBER][.NUMBER][+/-][/TAG2]
-
-Components (in order):
-
-### 1.1 **LETTER** (required): Major discourse field (21 categories)
-   - A = General and abstract terms
-   - B = Body and the individual
-   - C = Arts and crafts
-   - E = Emotion
-   - F = Food and farming
-   - G = Government and public
-   - H = Architecture, housing, home
-   - I = Money and commerce
-   - K = Entertainment, sports, games
-   - L = Life and living things
-   - M = Movement, location, travel
-   - N = Numbers and measurement
-   - O = Substances, materials, objects
-   - P = Education
-   - Q = Language and communication
-   - S = Social actions, states, processes
-   - T = Time
-   - W = World and environment
-   - X = Psychological actions, states
-   - Y = Science and technology
-   - Z = Names and grammar
-
-### 1.2 **NUMBER** (required): First subdivision
-   - Example: A1, E4, I2
-
-### 1.3 **DECIMAL** (optional): Finer subdivision
-   - Example: A1.1.1, E4.1, I2.1
-   - Can have multiple levels: A1.1.1, A1.1.2, etc.
-
-### 1.4 **+/- MARKERS** (optional): Position on semantic scale
-   - Single +/-: Basic positive/negative
-     * E4.1+ = 高兴 (positive emotion)
-     * E4.1- = 悲伤 (negative emotion)
-   
-   - Double ++/--: Comparative degree
-     * A5.1++ = 更好 (comparative of good)
-     * A5.1-- = 更坏 (comparative of bad)
-   
-   - Triple +++/---: Superlative degree
-     * A5.1+++ = 最好 (superlative of good)
-     * A5.1--- = 最坏 (superlative of bad)
-
-### 1.5 **SLASH TAGS** (optional): Multiple category membership
-   - Format: TAG1/TAG2 or TAG1/TAG2/TAG3
-   - Example: K5.1/S7.4- = 犯规 (Sports + Not allowed)
-   - Example: I3.2/I1.1/S2 = 会计 (Work + Money + Person)
-
-## 2. THE COMPLETE USAS TAGSET
-
-{tagset}
-
-## 3. ANNOTATION RULES (CRITICAL)
-
-### 3.1 Default Segmentation
-- **DEFAULT**: Tag individual tokens provided
-- **EXCEPTION**: Multi-word expressions (MWE) when they form:
-
-**MWE Types**:
-**Phrasal verbs**: "吃饭", "喝水"
-
-**Noun phrases**: "电视节目", "红烧狮子头"
-   
-**Proper names**: "红岸基地", "北京外国语大学"
-   
-**True idioms**: "不管三七二十一", "义无反顾"
-
-### 3.2 Semantic Scale Position (+/-)
-
-The +/- markers indicate **position on a semantic scale**:
-
-Temperature scale (O4.6)
-热 → O4.6+       (high temperature)
-冷 → O4.6-       (low temperature)
-气温 → O4.6      (neutral temperature)
-
-### 3.3 Double/Multiple Category Membership
-
-**Add slash tags when**:
-- The word has **two or more equally salient** semantic aspects in the given context
-- All the aspects are **essential** to understanding the word's role in the sentence
-- Neither aspect can be considered secondary or less important
-
-**Rules for slash tags:**
-- List most prominent category first
-- Separate with forward slash (/)
-- Can have 2, 3, or more categories
-- Each category can have its own +/- markers
-
-### 3.4 Context-Based Disambiguation
-
-**CRITICAL**: Use full sentence context to choose the correct tag:
-
-"打" - Multiple meanings
-"打人" → E3- (Violent/Angry)
-"打水" → A1.1.1 (General actions / making)
-"打电话" → Q1.3 (Telecommunications)
-
-### 3.5 Punctuation
-The tag for punctuation is PUNCT.
-
-## 4. OUTPUT FORMAT
-
-Return a JSON list. Each object must contain:
-
-{{
-  "text": "word or MWE",
-  "tag": "A5.1+",               // Complete USAS tag with all components
-  "desc": "Evaluation: Good",   // Description from tagset
-  "is_mwe": false,              // true if multi-word unit
-  "mwe_type": null              // "phrasal_verb", "idiom", "proper_name", "noun_phrase", "other"
-}}
-
-## 5. VALIDATION CHECKLIST
-
-Before submitting your output, verify:
-
-Did I tag ALL tokens from the word list?
-Did I use the correct tag structure (LETTER.NUMBER.NUMBER+/-/TAG2)?
-Did I apply the correct number of +/- for comparatives and superlatives?
-Did I use slash notation for words with multiple semantic memberships?
-Did I mark MWEs which indicate a complete semantic unit?
-Did I only merge tokens into MWEs when they truly meet the criteria?
-Did I use sentence context to disambiguate polysemous words?
-
-## 6. EXAMPLE
-
-{example}
-
----
-
-**YOUR TASK**:
-
-Annotate the following text. Tag each token with ALL the rules above.
-
-**Text**: {text}
-
-**Output JSON**:
-"""
-
-USAS_NAME = """UCREL Semantic Analysis System (USAS) Tagset"""
-
-EN_USAS_EXAMPLE = """**Text**: "The accountant kicked the bucket yesterday."
-
-**Output JSON**:
-[
-  {{"text": "The", "tag": "Z5", "desc": "Grammatical bin", "is_mwe": false, "mwe_type": null}},
-  {{"text": "accountant", "tag": "I3.2/I1.1/S2", "desc": "Work and employment: Professionalism / Money and pay/People", "is_mwe": false, "mwe_type": null}},
-  {{"text": "kicked the bucket", "tag": "L1-", "desc": "Dead", "is_mwe": true, "mwe_type": "idiom"}},
-  {{"text": "yesterday", "tag": "T1.1.1", "desc": "Time: Past", "is_mwe": false, "mwe_type": null}}
-  {{"text": ".", "tag": "PUNCT", "desc": "Punctuation", "is_mwe": false, "mwe_type": null}}
-]
-"""
-
-ZH_USAS_EXAMPLE = """**Text**: "他去喝水了。"
-
-**Output JSON**:
-[
-  {{"text": "他", "tag": "Z8", "desc": "Pronouns", "is_mwe": false, "mwe_type": null}},
-  {{"text": "去", "tag": "M1", "desc": "Moving, coming and going", "is_mwe": false, "mwe_type": null }},
-  {{"text": "喝水", "tag": "F2", "desc": "Drinks and alcohol", "is_mwe": true, "mwe_type": "phrasal_verb"}},
-  {{"text": "了", "tag": "Z5", "desc": "Grammatical bin", "is_mwe": false, "mwe_type": null}}
-  {{"text": "。", "tag": "PUNCT", "desc": "Punctuation", "is_mwe": false, "mwe_type": null}}
-]
-"""
-
 # 21 Main categories
 # 232 Subcategories
 # https://ucrel.lancs.ac.uk/usas/
 # https://ucrel.lancs.ac.uk/usas/semtags_subcategories.txt
-USAS_TAGSET = """
+EN_USAS_TAGSET = """
 A1	General And Abstract Terms
 A1.1.1	General actions / making
 A1.1.1-	Inaction
@@ -798,4 +619,189 @@ Z7-	Unconditional
 Z8	Pronouns
 Z9	Trash can
 Z99	Unmatched
+"""
+
+EN_USAS_EXAMPLE = """**Text**: "The accountant kicked the bucket yesterday."
+
+**Output JSON**:
+[
+  {{"text": "The", "tag": "Z5", "desc": "Grammatical bin", "is_mwe": false, "mwe_type": null}},
+  {{"text": "accountant", "tag": "I3.2/I1.1/S2", "desc": "Work and employment: Professionalism / Money and pay/People", "is_mwe": false, "mwe_type": null}},
+  {{"text": "kicked the bucket", "tag": "L1-", "desc": "Dead", "is_mwe": true, "mwe_type": "idiom"}},
+  {{"text": "yesterday", "tag": "T1.1.1", "desc": "Time: Past", "is_mwe": false, "mwe_type": null}}
+  {{"text": ".", "tag": "PUNCT", "desc": "Punctuation", "is_mwe": false, "mwe_type": null}}
+]
+"""
+
+ZH_USAS_PROMPT = """You are a professional corpus linguist specialized in semantic tagging.
+
+Your task is to annotate Chinese text following the annotation scheme of UCREL Semantic Analysis System (USAS) Tagset.
+First segment the given text into tokens. Then perform the semantic tagging.
+
+Note that you don't have to assigan a USAS tag to each individual token.
+You need to merge the tokens into Multi-word Expressions (MWE) according to the rules in section 3.1
+
+## 1. USAS TAG STRUCTURE
+
+Each USAS tag follows this structure:
+
+**Format**: `[LETTER][NUMBER][.NUMBER][+/-][/TAG2]
+
+Components (in order):
+
+### 1.1 **LETTER** (required): Major discourse field (21 categories)
+   - A = General and abstract terms
+   - B = Body and the individual
+   - C = Arts and crafts
+   - E = Emotion
+   - F = Food and farming
+   - G = Government and public
+   - H = Architecture, housing, home
+   - I = Money and commerce
+   - K = Entertainment, sports, games
+   - L = Life and living things
+   - M = Movement, location, travel
+   - N = Numbers and measurement
+   - O = Substances, materials, objects
+   - P = Education
+   - Q = Language and communication
+   - S = Social actions, states, processes
+   - T = Time
+   - W = World and environment
+   - X = Psychological actions, states
+   - Y = Science and technology
+   - Z = Names and grammar
+
+### 1.2 **NUMBER** (required): First subdivision
+   - Example: A1, E4, I2
+
+### 1.3 **DECIMAL** (optional): Finer subdivision
+   - Example: A1.1.1, E4.1, I2.1
+   - Can have multiple levels: A1.1.1, A1.1.2, etc.
+
+### 1.4 **+/- MARKERS** (optional): Position on semantic scale
+   - Single +/-: Basic positive/negative
+     * E4.1+ = 高兴 (positive emotion)
+     * E4.1- = 悲伤 (negative emotion)
+   
+   - Double ++/--: Comparative degree
+     * A5.1++ = 更好 (comparative of good)
+     * A5.1-- = 更坏 (comparative of bad)
+   
+   - Triple +++/---: Superlative degree
+     * A5.1+++ = 最好 (superlative of good)
+     * A5.1--- = 最坏 (superlative of bad)
+
+### 1.5 **SLASH TAGS** (optional): Multiple category membership
+   - Format: TAG1/TAG2 or TAG1/TAG2/TAG3
+   - Example: K5.1/S7.4- = 犯规 (Sports + Not allowed)
+   - Example: I3.2/I1.1/S2 = 会计 (Work + Money + Person)
+
+## 2. THE COMPLETE USAS TAGSET
+
+{tagset}
+
+## 3. ANNOTATION RULES (CRITICAL)
+
+**YOU MUST**:
+- **Keep all original text exactly as they appear - do NOT modify, correct, or rephrase any words**
+
+### 3.1 Default Segmentation
+- **DEFAULT**: Tag individual tokens provided
+- **EXCEPTION**: Multi-word expressions (MWE) when they form:
+
+**MWE Types**:
+**Phrasal verbs**: "吃饭", "喝水"
+
+**Noun phrases**: "电视节目", "红烧狮子头"
+   
+**Proper names**: "红岸基地", "北京外国语大学"
+   
+**True idioms**: "不管三七二十一", "义无反顾"
+
+### 3.2 Semantic Scale Position (+/-)
+
+The +/- markers indicate **position on a semantic scale**:
+
+Temperature scale (O4.6)
+热 → O4.6+       (high temperature)
+冷 → O4.6-       (low temperature)
+气温 → O4.6      (neutral temperature)
+
+### 3.3 Double/Multiple Category Membership
+
+**Add slash tags when**:
+- The word has **two or more equally salient** semantic aspects in the given context
+- All the aspects are **essential** to understanding the word's role in the sentence
+- Neither aspect can be considered secondary or less important
+
+**Rules for slash tags:**
+- List most prominent category first
+- Separate with forward slash (/)
+- Can have 2, 3, or more categories
+- Each category can have its own +/- markers
+
+### 3.4 Context-Based Disambiguation
+
+**CRITICAL**: Use full sentence context to choose the correct tag:
+
+"打" - Multiple meanings
+"打人" → E3- (Violent/Angry)
+"打水" → A1.1.1 (General actions / making)
+"打电话" → Q1.3 (Telecommunications)
+
+### 3.5 Punctuation
+The tag for punctuation is PUNCT.
+
+## 4. OUTPUT FORMAT
+
+Return a JSON list. Each object must contain:
+
+{{
+  "text": "word or MWE",
+  "tag": "A5.1+",               // Complete USAS tag with all components
+  "desc": "Evaluation: Good",   // Description from tagset
+  "is_mwe": false,              // true if multi-word unit
+  "mwe_type": null              // "phrasal_verb", "idiom", "proper_name", "noun_phrase", "other"
+}}
+
+## 5. VALIDATION CHECKLIST
+
+Before submitting your output, verify:
+
+Did I tag ALL tokens from the word list?
+Did I use the correct tag structure (LETTER.NUMBER.NUMBER+/-/TAG2)?
+Did I apply the correct number of +/- for comparatives and superlatives?
+Did I use slash notation for words with multiple semantic memberships?
+Did I mark MWEs which indicate a complete semantic unit?
+Did I only merge tokens into MWEs when they truly meet the criteria?
+Did I use sentence context to disambiguate polysemous words?
+
+## 6. EXAMPLE
+
+{example}
+
+---
+
+**YOUR TASK**:
+
+Annotate the following text. Tag each token with ALL the rules above.
+
+**Text**: {text}
+
+**Output JSON**:
+"""
+
+ZH_USAS_TAGSET = EN_USAS_TAGSET
+
+ZH_USAS_EXAMPLE = """**Text**: "他去喝水了。"
+
+**Output JSON**:
+[
+  {{"text": "他", "tag": "Z8", "desc": "Pronouns", "is_mwe": false, "mwe_type": null}},
+  {{"text": "去", "tag": "M1", "desc": "Moving, coming and going", "is_mwe": false, "mwe_type": null }},
+  {{"text": "喝水", "tag": "F2", "desc": "Drinks and alcohol", "is_mwe": true, "mwe_type": "phrasal_verb"}},
+  {{"text": "了", "tag": "Z5", "desc": "Grammatical bin", "is_mwe": false, "mwe_type": null}}
+  {{"text": "。", "tag": "PUNCT", "desc": "Punctuation", "is_mwe": false, "mwe_type": null}}
+]
 """

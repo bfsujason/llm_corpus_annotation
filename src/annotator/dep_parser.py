@@ -5,12 +5,13 @@
 
 import json
 import logging
-import pandas as pd
-from tqdm import tqdm
+
 from collections import defaultdict
 
-import stanza
-from src.annotator.tokenizer import Tokenizer
+import pandas as pd
+from tqdm import tqdm
+
+from src.utils import clean_text, split_sents
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -22,35 +23,36 @@ class DEPParser:
         tagset='ud',
         mode='local',
         llm_model=None,
-        device=None,
+        enable_thinking=False,
     ):
         """
-        :param lang:        语种 str
-                            [chinese]:  中文
-                            [english]:  英文
-        :param tagset:      标注集 str
-                            [ud]:       通用依存关系标注集 2.0
-                            https://universaldependencies.org/u/dep/
-                            --- 英语 EWT 依存树库标注集 ---
-                            https://universaldependencies.org/treebanks/en_ewt/index.html
-                            --- 汉语 GSD 依存树库标注集 ---
-                            https://universaldependencies.org/treebanks/zh_gsd/index.html
-        :param mode:        标注模式 str
-                            [local]:    本地预训练模型
-                            [llm]:      大模型 API
-        :param llm_model:   大模型名称 str | None
-                            [deepseek-v3.2]:  DeepSeek V3.2
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2868565
-                            [glm-4.7]:        GLM-4.7
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
-                            [qwen3-max]:      Qwen3-Max
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
-                            [None]:           DeepSeek V3.2
-        :param device:      设备 int | None
-                            [-1]:     CPU
-                            [0]:      GPU
-                            [None]:   自动选择  
-        :return:            DEPParser Pipeline 实例
+        :param lang:            语种 str
+                                [chinese]:  中文
+                                [english]:  英文
+        :param tagset:          标注集 str
+                                [ud]:       通用依存关系标注集 2.0
+                                https://universaldependencies.org/u/dep/
+                                --- 英语 EWT 依存树库标注集 ---
+                                https://universaldependencies.org/treebanks/en_ewt/index.html
+                                --- 汉语 GSD 依存树库标注集 ---
+                                https://universaldependencies.org/treebanks/zh_gsd/index.html
+        :param mode:            标注模式 str
+                                [local]:    本地预训练模型
+                                [llm]:      大模型 API
+        :param llm_model:       大模型名称 str | None
+                                [kimi-k2.5]:      Kimi-k2.5
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2948482
+                                [deepseek-v3.2]:  DeepSeek V3.2
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2868565
+                                [glm-4.7]:        GLM-4.7
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
+                                [qwen3-max]:      Qwen3-Max
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
+                                [None]:           DeepSeek V3.2
+        :param enable_thinking: 思考模式 | Boolean
+                                [True]:     开启
+                                [False]:    关闭
+        :return:                DEPParser Pipeline 实例
         """
         
         # 参数校验
@@ -80,9 +82,12 @@ class DEPParser:
         self.lang = lang
         self.tagset = tagset
         self.mode = mode
-        self.tokenizer = Tokenizer(lang=lang)
+        self.enable_thinking = enable_thinking
         
         if mode == 'local':
+            import stanza
+            from src.annotator.tokenizer import Tokenizer
+            self.tokenizer = Tokenizer(lang=lang, mode='local')
             if lang == 'chinese':
                 # === 加载中文句法标注模型 ===
                 # gsdsimp_charlm 
@@ -107,7 +112,7 @@ class DEPParser:
             from src.prompt import dep_parse_prompt
             
             logger.info('加载 LLM 句法标注模型 ...')
-            self.pipeline = LLMClient(model=llm_model)
+            self.pipeline = LLMClient(model=llm_model, enable_thinking=enable_thinking)
             self.llm_model = self.pipeline.default_model
             self.prompt = dep_parse_prompt
             logger.info(f'LLM 句法标注模型加载完毕！')
@@ -117,6 +122,7 @@ class DEPParser:
         """
         :param text:    输入文本 str 
         :return:        标注结果 dict
+                        [text]:  输入文本 str
                         [sent]:     分句结果 [list]
                         [tok]:      分词结果 [list[list]]
                         [dep]:      依存关系 [list[list]]
@@ -130,40 +136,43 @@ class DEPParser:
             
     def _llm_tag(self, text):
         tagset = self.tagset.upper()
+        
         if self.lang == 'english':
-            scheme_name = f'EN_{tagset}_NAME'
+            prompt_name = f'EN_{tagset}_PROMPT'
             example_name = f'EN_{tagset}_EXAMPLE'
             deprel_name = f'EN_{tagset}_DEPREL'
         elif self.lang == 'chinese':
-            scheme_name = f'ZH_{tagset}_NAME'
+            prompt_name = f'ZH_{tagset}_PROMPT'
             example_name = f'ZH_{tagset}_EXAMPLE'
             deprel_name = f'ZH_{tagset}_DEPREL'
             
-        scheme = getattr(self.prompt, scheme_name)
+        prompt_tmpl = getattr(self.prompt, prompt_name)
         example = getattr(self.prompt, example_name)
         deprel = getattr(self.prompt, deprel_name)
         
-        tok_sents = self.tokenizer.tokenize(text)
-        #print(tok_sents)
         result = defaultdict(list)
-        result['sent'] = tok_sents['sent']
-        for sent, tokens in zip(tok_sents['sent'], tok_sents['tok']):
+        text = clean_text(text)
+        sents = split_sents(text, lang=self.lang)
+        
+        result['text'] = text
+        result['sent'] = sents['sent']
+        
+        for sent in sents['sent']:
             
             # 构造 Prompt
-            prompt = self.prompt.PROMPT.format(
-                lang=self.lang,
-                scheme=scheme,
+            prompt = prompt_tmpl.format(
                 deprel=deprel,
                 example=example,
+                #tokens=json.dumps(tokens, ensure_ascii=False),
                 text=json.dumps(sent, ensure_ascii=False),
-                tokens=json.dumps(tokens, ensure_ascii=False),
             )
             #print(prompt)
             
             # 调用大模型
             try:
-                response = self.pipeline.get_json_response(
-                    prompt=prompt, 
+                response = self.pipeline.get_response(
+                    prompt=prompt,
+                    json_output=True,
                 )
                 #print(response)
                 tokens, heads, rels = self._convert_llm_response(response)
@@ -180,6 +189,8 @@ class DEPParser:
         
         result = defaultdict(list)
         tok_sents = self.tokenizer.tokenize(text)
+        
+        result['text'] = tok_sents['text']
         result['sent'] = tok_sents['sent']
         doc = self.pipeline(tok_sents['tok'])
         for sent in doc.sentences:
@@ -270,7 +281,7 @@ def compare_annos(
     annos_2_name,
     show_diff=True,
 ):
-    #intersections, unions = 0, 0
+    intersections, unions = 0, 0
     for anno_1, anno_2 in zip(annos_1, annos_2):
         print(f"\n[ID]: {anno_1['id']}")
 
@@ -292,11 +303,11 @@ def compare_annos(
             
             intersection = set_1 & set_2
             union = set_1 | set_2
-            #jac = len(intersection) / len(union)
-            #print(f"Jaccard: {jac:.3f}")
+            jac = len(intersection) / len(union)
+            print(f"Jaccard: {jac:.3f}")
             
-            #intersections += len(intersection)
-            #unions += len(union)
+            intersections += len(intersection)
+            unions += len(union)
             
             if show_diff:
                 only_in_1 = set_1 - set_2
@@ -306,13 +317,16 @@ def compare_annos(
             
         print("=" * 60)
         
-    #macro_jac = intersections / unions
-    #print(f"Macro Jaccard: {macro_jac:.3f}")    
+    macro_jac = intersections / unions
+    print(f"Macro Jaccard: {macro_jac:.3f}")    
     
 if __name__ == '__main__':
 
     # 打印日志信息
     logging.basicConfig(level=logging.INFO)
+    
+    llm_model = 'deepseek-v3.2'
+    enable_thinking = False
 
     # === 测试中文 ===
     
@@ -331,7 +345,13 @@ if __name__ == '__main__':
 
     print(f'\n测试 2: LLM 中文句法标注')
     print(f'{"=" * 30}')
-    zh_dep_parser = DEPParser(lang=lang, tagset=tagset, mode='llm')
+    zh_dep_parser = DEPParser(
+        lang=lang,
+        tagset=tagset,
+        mode='llm',
+        llm_model=llm_model,
+        enable_thinking=enable_thinking,
+    )
     zh_doc = zh_dep_parser.tag(zh_text)
     print(f'[标注结果]:{zh_doc}')
     
@@ -352,7 +372,12 @@ if __name__ == '__main__':
 
     print(f'\n测试 4: LLM 英文句法标注')
     print(f'{"=" * 30}')
-    en_dep_parser = DEPParser(lang=lang, tagset=tagset, mode='llm')
+    en_dep_parser = DEPParser(
+        lang=lang,
+        tagset=tagset,
+        mode='llm',
+        llm_model=llm_model,
+        enable_thinking=enable_thinking,
+    )
     en_doc = en_dep_parser.tag(en_text)
     print(f'[标注结果]:{en_doc}')
-    

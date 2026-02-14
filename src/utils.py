@@ -3,81 +3,134 @@
 # 单元测试：
 # python -m src.utils
 
-import os
-import glob
+import re
 import json
-import random
+
 import pandas as pd
+#from spacy import displacy
+from sentence_splitter import SentenceSplitter
 
-from collections import defaultdict
+'''
+from spacy import displacy
+from IPython.display import display, HTML
+import IPython.core.display as core_display
+core_display.display = display
+core_display.HTML = HTML
 
-def load_data(data_dir, limit=None):
+# 自定义依存关系数据
+doc = {
+    "words": [
+        {"text": "我", "tag": ""},
+        {"text": "爱", "tag": ""},
+        {"text": "自然语言", "tag": ""},
+        {"text": "处理", "tag": ""}
+    ],
+    "arcs": [
+        {"start": 0, "end": 1, "label": "nsubj", "dir": "left"},
+        {"start": 1, "end": 3, "label": "dobj", "dir": "right"},
+        {"start": 2, "end": 3, "label": "compound", "dir": "left"}
+    ]
+}
+
+# 渲染可视化
+displacy.render(doc, style="dep", manual=True)
+
+html = displacy.render(doc, style="dep", manual=True, jupyter=False)
+
+with open("dep.html", "w", encoding="utf-8") as f:
+    f.write(html)
+'''
+
+def load_data(file_name, limit=None):
     """
     读取 TSV 格式双语语料
     
-    :param data_dir: .tsv 文件目录
+    :param file_name: .tsv 文件路径
     :param limit: 限定读取数据行数
     :return: DataFrame
     """
     
-    # 查找指定目录下的 .tsv 文件
-    file_pattern = os.path.join(data_dir, '*.tsv')
-    all_files = glob.glob(file_pattern)
-    
-    if not all_files:
-        raise FileNotFoundError(f'{data_dir} 下未找到 .tsv 文件')
-
-    df_list = []
-    for filename in all_files:
-        try:
-            # 读取单个文件
-            # on_bad_lines='skip': 跳过格式错误的行
-            # quoting=3: 避免引号导致解析错误
-            temp_df = pd.read_csv(filename, sep='\t', header=None, 
-                                  names=['source', 'target'], 
-                                  on_bad_lines='skip', quoting=3)
-            
-            # 添加文件名列
-            #temp_df['file_id'] = os.path.basename(filename)
-            
-            df_list.append(temp_df)
-            
-        except Exception as e:
-           print(f'读取文件 {filename} 失败: {e}')
-            
-    # 合并所有数据
-    if df_list:
-        full_corpus = pd.concat(df_list, ignore_index=True)
+    try:
+        # 读取单个文件
+        # on_bad_lines='skip': 跳过格式错误的行
+        # quoting=3: 避免引号导致解析错误
+        temp_df = pd.read_csv(file_name, sep='\t', header=None, 
+                              names=['source', 'target'], 
+                              on_bad_lines='skip', quoting=3)
         
-        # 替换空值
-        # full_corpus = full_corpus.replace({np.nan: None})
-        full_corpus = full_corpus.dropna()
+        corpus = temp_df.dropna()
         if limit:
-            full_corpus = full_corpus.head(limit)
-        return full_corpus
-    else:
-        return pd.DataFrame()
+            corpus = corpus.head(limit)
+        return corpus
+    except Exception as e:
+       print(f'读取文件 {filename} 失败: {e}')
+        
+def load_claws_tag(file_name):
+    result = []
+    with open(file_name, 'rt', encoding='utf-8') as fin:
+        for i, line in enumerate(fin):
+            record = {}
+            record['id'] = f'{i+1:05d}'
+            line = line.strip()
+            text, tags = line.split('\t')
+            tok, pos = [], []
+            for tag in tags.split():
+               _tok, _pos = tag.split('_')
+               tok.append(_tok)
+               pos.append(_pos)
+            record['text'] = text
+            record['tok'] = tok
+            record['pos'] = pos
+            result.append(record)
+    return result
     
+def clean_text(text):
+    clean_text = []
+    text = text.strip()
+    lines = text.splitlines()
+    for line in lines:
+        line = line.strip()
+        if line:
+            line = re.sub(r'\s+', ' ', line)
+            clean_text.append(line)
+    return "\n".join(clean_text)
+
+def split_sents(text, lang):
+    result = {}
+    if lang == 'chinese':
+        sents = _split_zh(text)
+    elif lang == 'english':
+        splitter = SentenceSplitter(language='en')
+        sents = splitter.split(text=text) 
+        sents = [sent.strip() for sent in sents]
+    result['sent'] = sents
+    return result
+    
+def _split_zh(text, limit=1000):
+        sent_list = []
+        text = re.sub('(?P<quotation_mark>([。？！](?![”’"\'）])))', r'\g<quotation_mark>\n', text)
+        text = re.sub('(?P<quotation_mark>([。？！]|…{1,2})[”’"\'）])', r'\g<quotation_mark>\n', text)
+
+        sent_list_ori = text.splitlines()
+        for sent in sent_list_ori:
+            sent = sent.strip()
+            if not sent:
+                continue
+            else:
+                while len(sent) > limit:
+                    temp = sent[0:limit]
+                    sent_list.append(temp)
+                    sent = sent[limit:]
+                sent_list.append(sent)
+
+        return sent_list
+      
 def save_results(results, out_file):
      with open(out_file, "wt", encoding="utf-8") as fout:
         for record in results:
             fout.write(json.dumps(record, ensure_ascii=False) + "\n")
             
 if __name__ == '__main__':
-    
-    
-    #conll_file = 'data/eval/en_ewt-ud-test.conllu'
-    #jsonl_file = 'data/eval/en_ewt-ud-test.jsonl'
-    #conll_file = 'data/eval/zh_gsdsimp-ud-test.conllu'
-    #jsonl_file = 'data/eval/zh_gsdsimp-ud-test.jsonl'
-    
-    #sents = parse_conll(conll_file)
-    #save_results(sents, jsonl_file)
-    
-    #eval_data = load_eval_data(jsonl_file)
-    #print(eval_data[:5])
-    
-    ctb_file = 'data/eval/ctb_5.1_test.tsv'
-    jsonl_file = 'data/eval/ctb_5.1_test.jsonl'
-    sents = parse_ctb(ctb_file)
-    save_results(sents, jsonl_file)
+    claws_tag_file = 'data/eval/claws7_tag.txt'
+    result = load_claws_tag(claws_tag_file)
+    print(result)

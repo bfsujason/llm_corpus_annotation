@@ -1,22 +1,48 @@
 # LLM POS Tagging Prompt Template
-# Placeholders: lang, scheme, tagset, example, text
+# Placeholders: tagset, example, text
 
-PROMPT = """You are a professional corpus linguist specialized in Part-of-Speech (POS) tagging.
+EN_CLAWS_PROMPT = """You are a professional corpus linguist specialized in Part-of-Speech (POS) tagging.
 
-Your task is to annotate {lang} text following the annotation scheme of {scheme}.
+Your task is to annotate English text following the annotation scheme of UCREL's CLAWS7 POS Tagset.
 First segment the given text into tokens. Then assign a POS tag to each token.
 
 ## 1. ANNOTATION RULES
 
 **YOU MUST**:
+- **Keep all original text exactly as they appear - do NOT modify, correct, or rephrase any words**
 - Tag each token individually by DEFAULT
 - Ensure every token is covered in your output
+- Keep punctuation tags as-is: punctuation marks are tagged with themselves (e.g., ',' → ',', '.' → '.', etc.)
+- Apply ditto tags (see section 3) for multiword expressions where appropriate
 
-## 2. THE COMPLETE TAGSET
+## 2. Ditto tags
+**Ditto tags** mark multiword expressions that function as a single grammatical unit. They are formed by adding a two-digit suffix to the base tag:
+**Format**: `TAG##` where:
+
+- First digit = total number of words in the multiword expression
+- Second digit = position of this word in the sequence
+
+**Examples**:
+
+"in terms of" (single preposition): in_II31 terms_II32 of_II33
+"at length" (single adverb): at_RR21 length_RR22
+"a lot" (can be determiner or adverb): a_DD21 lot_DD22 OR a_RR21 lot_RR22
+"in that" (can be conjunction or preposition+determiner): in_CS21 that_CS22 OR in_II that_DD1
+
+**Common multiword expressions** that may use ditto tags include:
+
+- Compound prepositions: in spite of, in front of, in terms of, because of, due to
+- Compound conjunctions: in order that, so that
+- Compound adverbs: at least, at most, at length
+- Fixed expressions: a lot (of), a bit (of), kind of, sort of
+
+**Note**: Only use ditto tags for established multiword expressions in the CLAWS idiomlist, not for arbitrary word combinations.
+
+## 3. THE COMPLETE TAGSET
 
 {tagset}
 
-## 3. OUTPUT FORMAT
+## 4. OUTPUT FORMAT
 
 Return a JSON list. Each object must contain:
 
@@ -24,7 +50,7 @@ Return a JSON list. Each object must contain:
 - `tag`: The POS tag code for that token.
 - `desc`: The description of that tag from the reference table.
 
-## 4. EXAMPLE
+## 5. EXAMPLES
 
 {example}
 
@@ -32,167 +58,14 @@ Return a JSON list. Each object must contain:
 
 **YOUR TASK**:
 
-Annotate the following text. Tag each token following ALL the rules above.
+Annotate the following tokens. Tag each token following ALL the rules above, applying ditto tags to recognized multiword expressions.
 
 **Text**: {text}
 
 **Output JSON**:
 """
 
-# === PTB 英语词性赋码集 ===
-
-EN_PTB_NAME = """Spacy's Penn Treebank (PTB) POS Tagset"""
-
-# 45 + 6 tags (with Spacy's extension)
-# https://catalog.ldc.upenn.edu/docs/LDC99T42/tagguid1.pdf
-# https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
-# https://spacy.io/models/en#en_core_web_trf
-# https://github.com/explosion/spaCy/blob/master/spacy/glossary.py
-
-EN_PTB_TAGSET = """
-| Label | Description | Explanation | Tag Type |
-|-------|-------------|-------------|----------|
-| **$** | Dollar sign | Currency symbol, also used for other currency symbols. Functions to mark monetary values. | Punctuation (PTB) |
-| **''** | Closing quotation mark | Right/closing double quote. Functions to mark the end of quoted material. | Punctuation (PTB) |
-| **,** | Comma | Punctuation mark for separation. Functions to separate clauses, list items, or other sentence elements. | Punctuation (PTB) |
-| **-LRB-** | Left round bracket | Escaped left parenthesis "(" in PTB format. Functions to group or set apart supplementary information. | Punctuation (PTB) |
-| **-RRB-** | Right round bracket | Escaped right parenthesis ")" in PTB format. Functions to close parenthetical expressions. | Punctuation (PTB) |
-| **.** | Sentence terminator | Period, exclamation point, or question mark ending a sentence. Functions to mark sentence boundaries. | Punctuation (PTB) |
-| **:** | Colon or ellipsis | Colon, semicolon, or ellipsis (...). Functions to introduce lists, separate clauses, or indicate pauses. | Punctuation (PTB) |
-| **``** | Opening quotation mark | Left/opening double quote. Functions to mark the beginning of quoted material. | Punctuation (PTB) |
-| **#** | Pound sign | Hash symbol. Functions to mark numbers, social media hashtags, or other special uses. | Punctuation (PTB) |
-| **ADD** | Email or web address | Email addresses, URLs, and other internet-specific additions. Functions to identify non-standard textual elements in web/biomedical corpora. | **Spacy Extension** |
-| **AFX** | Affix | Bound morphological prefix or suffix that doesn't exist as free-standing word (e.g., "non-", "pre-", "anti-" when separated by hyphen). Functions to mark morphological units in tokenized compounds. | **Spacy Extension** |
-| **CC** | Coordinating conjunction | Conjunctions connecting elements of equal grammatical rank. Functions to join words, phrases, or clauses (e.g., *and*, *but*, *or*, *yet*). | Core PTB (36) |
-| **CD** | Cardinal number | Numerical values, including integers, decimals, fractions. Functions to express quantity or numerical order (e.g., *one*, *1*, *2.5*, *million*). | Core PTB (36) |
-| **DT** | Determiner | Articles and determiners that introduce and specify nouns. Functions to express definiteness, specificity, or quantity (e.g., *the*, *a*, *an*, *this*, *these*, *some*). | Core PTB (36) |
-| **EX** | Existential "there" | The word "there" when used as expletive subject. Functions as placeholder subject in existential constructions (e.g., "There is a problem"). | Core PTB (36) |
-| **FW** | Foreign word | Words from other languages not assimilated into English. Functions to mark non-English vocabulary (e.g., *bon vivant*, *zeitgeist*). | Core PTB (36) |
-| **HYPH** | Hyphen | Hyphen character when tokenized separately. Functions to connect compound words or mark line breaks; used when hyphens are split from surrounding text in modern tokenization. | **Spacy Extension** |
-| **IN** | Preposition or subordinating conjunction | Prepositions and subordinating conjunctions. Functions to show spatial/temporal relationships or introduce subordinate clauses (e.g., *in*, *of*, *because*, *although*, *while*). | Core PTB (36) |
-| **JJ** | Adjective | Base form adjective modifying nouns. Functions to describe qualities or attributes (e.g., *big*, *red*, *happy*, *old*). | Core PTB (36) |
-| **JJR** | Adjective, comparative | Comparative form of adjective. Functions to compare two entities (e.g., *bigger*, *better*, *more interesting*). | Core PTB (36) |
-| **JJS** | Adjective, superlative | Superlative form of adjective. Functions to compare three or more entities, indicating the extreme (e.g., *biggest*, *best*, *most interesting*). | Core PTB (36) |
-| **LS** | List item marker | Symbols or numbers used as list markers. Functions to enumerate items in lists (e.g., *1.*, *a)*, *(i)*). | Core PTB (36) |
-| **MD** | Modal auxiliary | Modal verbs expressing modality. Functions to indicate possibility, necessity, ability, permission (e.g., *can*, *could*, *will*, *would*, *should*, *must*, *may*, *might*). | Core PTB (36) |
-| **NFP** | Superfluous punctuation | Non-standard or excessive punctuation often found in informal web text. Functions to mark unusual punctuation patterns (e.g., *!!!*, *???*, emoticons in some contexts). | **Spacy Extension** |
-| **NN** | Noun, singular or mass | Common noun in singular form or mass noun. Functions as head of noun phrases for general entities or uncountable substances (e.g., *dog*, *city*, *water*, *information*). | Core PTB (36) |
-| **NNP** | Proper noun, singular | Singular proper noun naming specific entities. Functions to identify particular individuals, places, organizations (e.g., *Mary*, *London*, *Microsoft*). | Core PTB (36) |
-| **NNPS** | Proper noun, plural | Plural proper noun. Functions to name specific entities in plural form (e.g., *Americas*, *Smiths*, *Rockies*). | Core PTB (36) |
-| **NNS** | Noun, plural | Common noun in plural form. Functions to refer to multiple instances of entities (e.g., *dogs*, *cities*, *ideas*). | Core PTB (36) |
-| **PDT** | Predeterminer | Determiners that precede other determiners. Functions to modify the entire noun phrase before the main determiner (e.g., *all*, *both*, *half*, *such* in "all the people"). | Core PTB (36) |
-| **POS** | Possessive ending | Possessive marker "'s" or apostrophe. Functions to indicate possession or relationship (e.g., *John's*, *students'*). | Core PTB (36) |
-| **PRP** | Personal pronoun | Subject and object pronouns. Functions to substitute for noun phrases and refer to entities (e.g., *I*, *you*, *he*, *she*, *it*, *we*, *they*, *me*, *him*, *her*, *us*, *them*). | Core PTB (36) |
-| **PRP$** | Possessive pronoun | Possessive pronouns used as determiners. Functions to show ownership (e.g., *my*, *your*, *his*, *her*, *its*, *our*, *their*). | Core PTB (36) |
-| **RB** | Adverb | Base form adverb modifying verbs, adjectives, or other adverbs. Functions to express manner, time, place, degree (e.g., *quickly*, *very*, *here*, *never*, *almost*). | Core PTB (36) |
-| **RBR** | Adverb, comparative | Comparative form of adverb. Functions to compare actions or qualities (e.g., *faster*, *better*, *more quickly*). | Core PTB (36) |
-| **RBS** | Adverb, superlative | Superlative form of adverb. Functions to indicate the extreme in comparing actions (e.g., *fastest*, *best*, *most quickly*). | Core PTB (36) |
-| **RP** | Particle | Verbal particle in phrasal verbs. Functions as part of multiword verbs, changing the verb's meaning (e.g., *up* in "look up", *out* in "figure out"). | Core PTB (36) |
-| **SYM** | Symbol | Mathematical, scientific, or other non-punctuation symbols. Functions to represent concepts, operations, or special notations (e.g., *+*, *%*, *&*, *@*, *§*, mathematical symbols). | Core PTB (36) |
-| **TO** | Infinitival "to" | The word "to" when used as infinitive marker. Functions to introduce infinitive verb forms (e.g., "I want to go"). | Core PTB (36) |
-| **UH** | Interjection | Exclamations and interjections expressing emotion. Functions as standalone expressions of feeling or reaction (e.g., *oh*, *wow*, *ouch*, *uh*, *hmm*, *hello*). | Core PTB (36) |
-| **VB** | Verb, base form | Base/infinitive form of verb. Functions as bare infinitive or imperative (e.g., *go*, *be*, *run* in "I can go"). | Core PTB (36) |
-| **VBD** | Verb, past tense | Simple past tense form. Functions to express past actions or states (e.g., *went*, *was*, *ran*, *thought*). | Core PTB (36) |
-| **VBG** | Verb, gerund/present participle | -ing form of verb. Functions as gerund (noun) or present participle (progressive aspect, adjectival use) (e.g., *going*, *being*, *running*). | Core PTB (36) |
-| **VBN** | Verb, past participle | Past participle form. Functions in perfect tenses, passive voice, or as adjective (e.g., *gone*, *been*, *run*, *thought*). | Core PTB (36) |
-| **VBP** | Verb, non-3rd person singular present | Present tense for non-third-person subjects. Functions to express current action/state (e.g., *go*, *are*, *think* with I/you/we/they). | Core PTB (36) |
-| **VBZ** | Verb, 3rd person singular present | Present tense for third-person singular subjects. Functions to express current action/state (e.g., *goes*, *is*, *thinks* with he/she/it). | Core PTB (36) |
-| **WDT** | Wh-determiner | Wh-words functioning as determiners. Functions to introduce relative clauses or questions (e.g., *which*, *that*, *what* in "which book"). | Core PTB (36) |
-| **WP** | Wh-pronoun | Wh-pronouns for questions and relative clauses. Functions to introduce interrogatives or relative clauses (e.g., *who*, *whom*, *what*, *that* when used as pronoun). | Core PTB (36) |
-| **WP$** | Possessive wh-pronoun | Possessive form of wh-pronoun. Functions in questions about possession (e.g., *whose*). | Core PTB (36) |
-| **WRB** | Wh-adverb | Wh-words functioning as adverbs. Functions to introduce questions or relative clauses about manner, time, place, reason (e.g., *where*, *when*, *why*, *how*). | Core PTB (36) |
-| **XX** | Unknown | Token of unclear or unknown category. Functions as catch-all for items that cannot be confidently assigned to other categories; also used for some typos or malformed text. | **Spacy Extension** |
-| **_SP** | Space token | Represents whitespace or space characters. Functions to explicitly mark spacing in Spacy's tokenization; internal Spacy tag not standard in PTB. | **Spacy Extension** |
-"""
-
-EN_PTB_EXAMPLE = """**Text**: "Sha Ruishan's job was to create a more detailed map of the cosmic microwave background using observational data."
-
-**Output JSON**:
-[
-    {{'token': 'Sha', 'tag': 'NNP', 'desc': 'Proper noun, singular'}},
-    {{'token': 'Ruishan', 'tag': 'NNP', 'desc': 'Proper noun, singular'}},
-    {{'token': "'s", 'tag': 'POS', 'desc': 'Possessive ending'}},
-    {{'token': 'job', 'tag': 'NN', 'desc': 'Noun, singular or mass'}},
-    {{'token': 'was', 'tag': 'VBD', 'desc': 'Verb, past tense'}},
-    {{'token': 'to', 'tag': 'TO', 'desc': 'Infinitival "to"'}},
-    {{'token': 'create', 'tag': 'VB', 'desc': 'Verb, base form'}},
-    {{'token': 'a', 'tag': 'DT', 'desc': 'Determiner'}},
-    {{'token': 'more', 'tag': 'RBR', 'desc': 'Adverb, comparative'}},
-    {{'token': 'detailed', 'tag': 'JJ', 'desc': 'Adjective'}},
-    {{'token': 'map', 'tag': 'NN', 'desc': 'Noun, singular or mass'}},
-    {{'token': 'of', 'tag': 'IN', 'desc': 'Preposition or subordinating conjunction'}},
-    {{'token': 'the', 'tag': 'DT', 'desc': 'Determiner'}},
-    {{'token': 'cosmic', 'tag': 'JJ', 'desc': 'Adjective'}},
-    {{'token': 'microwave', 'tag': 'NN', 'desc': 'Noun, singular or mass'}},
-    {{'token': 'background', 'tag': 'NN', 'desc': 'Noun, singular or mass'}},
-    {{'token': 'using', 'tag': 'VBG', 'desc': 'Verb, gerund/present participle'}},
-    {{'token': 'observational', 'tag': 'JJ', 'desc': 'Adjective'}},
-    {{'token': 'data', 'tag': 'NNS', 'desc': 'Proper noun, plural'}},
-    {{'token': '.', 'tag': '.', 'desc': 'Sentence terminator'}},
-]
-"""
-
-# === UD 英语词性赋码集 ===
-
-EN_UD_NAME = """Universal POS Tagset"""
-
-# 17 tags
-# https://universaldependencies.org/u/pos/index.html
-# https://github.com/explosion/spaCy/blob/master/spacy/glossary.py
-# https://github.com/hankcs/HanLP/blob/ddb1299bddff079e447af52ec12549c50636bfa8/docs/annotations/pos/ud.md
-
-EN_UD_TAGSET = """
-| Label | Description | Explanation |
-|-------|-------------|-------------|
-| **ADJ** | Adjective | Words that modify nouns, describing qualities, quantities, or states. Functions to provide additional information about entities (e.g., *big*, *red*, *happy*). |
-| **ADP** | Adposition | Covers prepositions and postpositions that express spatial or temporal relations. Functions to show relationships between words, typically governing nouns or pronouns (e.g., *in*, *on*, *at*, *from*). |
-| **ADV** | Adverb | Words that modify verbs, adjectives, or other adverbs. Functions to express manner, time, place, degree, or frequency (e.g., *quickly*, *very*, *here*, *often*). |
-| **AUX** | Auxiliary verb | Helping verbs that accompany main verbs to form tenses, moods, or voice. Functions to express grammatical distinctions like tense, aspect, modality, or voice (e.g., *be*, *have*, *will*, *can*, *must*). |
-| **CCONJ** | Coordinating conjunction | Words that connect elements of equal grammatical rank. Functions to join words, phrases, or clauses in a non-subordinate relationship (e.g., *and*, *or*, *but*). |
-| **DET** | Determiner | Words that introduce and specify nouns. Functions to express reference, quantity, or definiteness of nouns (e.g., *the*, *a*, *this*, *some*, *every*). |
-| **INTJ** | Interjection | Words used to express emotion or sudden feeling. Functions as standalone expressions or exclamations, often loosely connected to the sentence structure (e.g., *oh*, *wow*, *ouch*, *hello*). |
-| **NOUN** | Noun | Words that denote common entities, objects, concepts, or ideas. Functions as the head of noun phrases, typically referring to general classes of things (e.g., *dog*, *city*, *happiness*). |
-| **NUM** | Numeral | Words expressing numbers or numerical quantities. Functions to quantify or order entities, including cardinal and ordinal numbers (e.g., *one*, *two*, *first*, *dozen*). |
-| **PART** | Particle | Function words that don't fit other categories, often with grammatical rather than lexical meaning. Functions to express grammatical relationships or modify meaning, including infinitive markers and verbal particles (e.g., *to*, *not*, *up* in phrasal verbs). |
-| **PRON** | Pronoun | Words that substitute for nouns or noun phrases. Functions to refer to entities without repeating the noun, including personal, possessive, reflexive, and relative pronouns (e.g., *he*, *they*, *mine*, *who*). |
-| **PROPN** | Proper noun | Words that name specific individuals, places, organizations, or unique entities. Functions to identify particular instances rather than general classes, typically capitalized (e.g., *London*, *Mary*, *Microsoft*). |
-| **PUNCT** | Punctuation | Non-alphabetic symbols used in writing. Functions to structure text, indicate pauses, separate elements, or convey intonation (e.g., *,* *.* *?* *!* *;*). |
-| **SCONJ** | Subordinating conjunction | Words that introduce subordinate clauses. Functions to create hierarchical relationships between clauses, marking dependency (e.g., *because*, *although*, *if*, *that*, *when*). |
-| **SYM** | Symbol | Non-punctuation symbols with specific meanings. Functions to represent concepts, mathematical operations, currencies, or special notations (e.g., *$*, *%*, *+*, *@*, *§*). |
-| **VERB** | Verb | Words that express actions, events, or states. Functions as the main predicate of a clause, conveying what happens or exists (e.g., *run*, *think*, *is*, *become*). |
-| **X** | Other | Words that cannot be assigned to other categories. Functions as a catch-all for foreign words, typos, unclear elements, or language-specific items that don't fit standard categories. |
-"""
-
-EN_UD_EXAMPLE = """"**Text**: "Sha Ruishan's job was to create a more detailed map of the cosmic microwave background using observational data."
-
-**Output JSON**:
-[
-    {{'token': 'Sha', 'tag': 'PROPN', 'desc': 'Proper noun'}},
-    {{'token': 'Ruishan', 'tag': 'PROPN', 'desc': 'Proper noun'}},
-    {{'token': "'s", 'tag': 'PART', 'desc': 'Particle'}},
-    {{'token': 'job', 'tag': 'NOUN', 'desc': 'Noun'}},
-    {{'token': 'was', 'tag': 'AUX', 'desc': 'Auxiliary verb'}},
-    {{'token': 'to', 'tag': 'PART', 'desc': 'Particle'}},
-    {{'token': 'create', 'tag': 'VERB', 'desc': 'Verb'}},
-    {{'token': 'a', 'tag': 'DET', 'desc': 'Determiner'}},
-    {{'token': 'more', 'tag': 'ADV', 'desc': 'Adverb'}},
-    {{'token': 'detailed', 'tag': 'ADJ', 'desc': 'Adjective'}},
-    {{'token': 'map', 'tag': 'NOUN', 'desc': 'Noun'}},
-    {{'token': 'of', 'tag': 'ADP', 'desc': 'Adposition'}},
-    {{'token': 'the', 'tag': 'DET', 'desc': 'Determiner'}},
-    {{'token': 'cosmic', 'tag': 'ADJ', 'desc': 'Adjective'}},
-    {{'token': 'microwave', 'tag': 'NOUN', 'desc': 'Noun'}},
-    {{'token': 'background', 'tag': 'NOUN', 'desc': 'Noun'}},
-    {{'token': 'using', 'tag': 'VERB', 'desc': 'Verb'}},
-    {{'token': 'observational', 'tag': 'ADJ', 'desc': 'Adjective'}},
-    {{'token': 'data', 'tag': 'NOUN', 'desc': 'Noun'}},
-    {{'token': '.', 'tag': 'PUNCT', 'desc': 'Punctuation'}},
-]
-"""
-
 # === CLAWS 英语词性赋码集 ===
-
-EN_CLAWS_NAME = """UCREL's CLAWS7 POS Tagset"""
 
 # 137 tags
 # https://ucrel.lancs.ac.uk/claws7tags.html
@@ -336,205 +209,211 @@ EN_CLAWS_TAGSET = """
 | XX | Not/n't | Negative particle in all forms |
 | ZZ1 | Singular letter of alphabet | Single letters (A, b, c) |
 | ZZ2 | Plural letter of alphabet | Plural letters (A's, b's, ABCs) |
-
-**Note on "Ditto Tags"**:
-Any tag can be modified with two digits (e.g., DD21, DD22) to indicate multi-word sequences treated as single grammatical units. The first digit shows the total words in the sequence, the second shows the position within it (e.g., "in terms of" → in_II31 terms_II32 of_II33).
-
-**Note on punctuation**:
-The tag for punctuation is the punctuation itself. For example, the tag for ',' is still ','.
 """
 
-EN_CLAWS_EXAMPLE = """"**Text**: "Sha Ruishan's job was to create a more detailed map of the cosmic microwave background using observational data."
+EN_CLAWS_EXAMPLE = """### Example 1:
+
+**Text**: "As for me, I can't wait to see what this city looks like."
 
 **Output JSON**:
 [
-    {{'token': 'Sha', 'tag': 'NP1', 'desc': 'Singular proper noun'}},
-    {{'token': 'Ruishan', 'tag': 'NP1', 'desc': 'Singular proper noun'}},
-    {{'token': "'s", 'tag': 'GE', 'desc': 'Germanic genitive marker'}},
-    {{'token': 'job', 'tag': 'NN1', 'desc': 'Singular common noun'}},
-    {{'token': 'was', 'tag': 'VBDZ', 'desc': 'Was'}},
+    {{'token': 'As', 'tag': 'II21', 'desc': 'General preposition'}},
+    {{'token': 'for', 'tag': 'II22', 'desc': 'General preposition'}},
+    {{'token': 'me', 'tag': 'PPIO1', 'desc': '1st person singular objective pronoun'}},
+    {{'token': ',', 'tag': ',', 'desc': 'Punctuation'}},
+    {{'token': 'I', 'tag': 'PPIS1', 'desc': '1st person singular subjective pronoun'}},
+    {{'token': 'ca', 'tag': 'VM', 'desc': 'Modal auxiliary'}},
+    {{'token': "n't", 'tag': 'XX', 'desc': "Not/n't"}},
+    {{'token': 'wait', 'tag': 'VVI', 'desc': 'Infinitive of lexical verb'}},
     {{'token': 'to', 'tag': 'TO', 'desc': 'Infinitive marker'}},
-    {{'token': 'create', 'tag': 'VVI', 'desc': 'Infinitive of lexical verb'}},
-    {{'token': 'a', 'tag': 'AT1', 'desc': 'Singular article'}},
-    {{'token': 'more', 'tag': 'RGR', 'desc': 'Comparative degree adverb'}},
-    {{'token': 'detailed', 'tag': 'JJ', 'desc': 'General adjective'}},
-    {{'token': 'map', 'tag': 'NN1', 'desc': 'Singular common noun'}},
+    {{'token': 'see', 'tag': 'VVI', 'desc': 'Infinitive of lexical verb'}},
+    {{'token': 'what', 'tag': 'DDQ', 'desc': 'Wh-determiner'}},
+    {{'token': 'this', 'tag': 'DD1', 'desc': 'Singular determiner'}},
+    {{'token': 'city', 'tag': 'NN1', 'desc': 'Singular common noun'}},
+    {{'token': 'looks', 'tag': 'VVZ', 'desc': '-s form of lexical verb'}},
+    {{'token': 'like', 'tag': 'II', 'desc': 'General preposition'}},
+    {{'token': '.', 'tag': '.', 'desc': 'Punctuation'}},
+]
+
+### Example 2:
+
+**Text**: "He is lying in order to reduce his prison time."
+
+**Output JSON**:
+[
+    {{'token': 'He', 'tag': 'PPHS1', 'desc': '3rd person singular subjective pronoun'}},
+    {{'token': 'is', 'tag': 'VBZ', 'desc': 'Third person singular present of "be"'}},
+    {{'token': 'lying', 'tag': 'VVG', 'desc': '-ing participle of lexical verb'}},
+    {{'token': 'in', 'tag': 'BCL21', 'desc': 'Before-clause marker'}},
+    {{'token': 'order', 'tag': 'BCL22', 'desc': 'Before-clause marker'}},
+    {{'token': 'to', 'tag': 'TO', 'desc': 'Infinitive marker'}},
+    {{'token': 'reduce', 'tag': 'VVI', 'desc': 'Infinitive of lexical verb'}},
+    {{'token': 'his', 'tag': 'APPGE', 'desc': 'Possessive pronoun, pre-nominal'}},
+    {{'token': 'prison', 'tag': 'NN1', 'desc': 'Singular common noun'}},
+    {{'token': 'time', 'tag': 'NNT1', 'desc': 'Temporal noun, singular}},
+    {{'token': '.', 'tag': '.', 'desc': 'Punctuation'}},
+]
+
+### Example 3:
+
+**Text**: "People do all kinds of things in the name of family."
+
+**Output JSON**:
+[
+    {{'token': 'People', 'tag': 'NN', 'desc': 'Common noun (neutral for number)'}},
+    {{'token': 'do', 'tag': 'VD0', 'desc': 'Do, base form'}},
+    {{'token': 'all', 'tag': 'DB', 'desc': 'Before-determiner with pronominal function'}},
+    {{'token': 'kinds', 'tag': 'NN2', 'desc': 'Plural common noun'}},
     {{'token': 'of', 'tag': 'IO', 'desc': 'Of (preposition)'}},
-    {{'token': 'the', 'tag': 'AT', 'desc': 'Article'}},
-    {{'token': 'cosmic', 'tag': 'JJ', 'desc': 'General adjective'}},
-    {{'token': 'microwave', 'tag': 'NN1', 'desc': 'Singular common noun'}},
-    {{'token': 'background', 'tag': 'NN1', 'desc': 'Singular common noun'}},
-    {{'token': 'using', 'tag': 'VVG', 'desc': '-ing participle of lexical verb'}},
-    {{'token': 'observational', 'tag': 'JJ', 'desc': 'General adjective'}},
-    {{'token': 'data', 'tag': 'NN', 'desc': 'Common noun (neutral for number)'}},
+    {{'token': 'things', 'tag': 'NN2', 'desc': 'Plural common noun'}},
+    {{'token': 'in', 'tag': 'II41', 'desc': 'General preposition'}},
+    {{'token': 'the', 'tag': 'II42', 'desc': 'General preposition'}},
+    {{'token': 'name', 'tag': 'II43', 'desc': 'General preposition'}},
+    {{'token': 'of', 'tag': 'II44', 'desc': 'General preposition'}},
+    {{'token': 'family', 'tag': 'NN1', 'desc': 'Singular common noun'}},
     {{'token': '.', 'tag': '.', 'desc': 'Punctuation'}},
 ]
 """
 
-# === CTB 汉语词性赋码集 ===
+ZH_PKU_PROMPT = """You are a professional corpus linguist specialized in Part-of-Speech (POS) tagging.
 
-ZH_CTB_NAME = """HanLP's Penn Chinese Treebank (CTB) POS Tagset"""
+Your task is to annotate Chinese text following the annotation scheme of HanLP's PKU POS Tagset (北大计算语言学研究所词性标注集).
+First segment the given text into tokens. Then assign a POS tag to each token.
 
-# 33 + 4 tags (with HanLP's extension)
-# https://catalog.ldc.upenn.edu/docs/LDC2010T07/ctb-posguide.pdf
-# https://github.com/hankcs/HanLP/blob/ddb1299bddff079e447af52ec12549c50636bfa8/docs/annotations/pos/ctb.md
+## 1. ANNOTATION RULES
 
-ZH_CTB_TAGSET = """
-| Label | Description | Explanation | Tag Origin |
-|-------|-------------|-------------|------------|
-| **AD** | Adverb | Modifies verbs, adjectives, or other adverbs to express manner, degree, time, or frequency. Functions as sentence or VP-level modifier (e.g., 也 "also", 很 "very", 仍然 "still", 大大 "greatly"). | Original CTB (33) |
-| **AS** | Aspect marker | Grammatical particles indicating aspect of verbs. Functions to mark perfective (了), durative (着), or experiential (过) aspects. | Original CTB (33) |
-| **BA** | 把 in ba-construction | The preposition 把 in disposal constructions. Functions to front the object for emphasis or disposal meaning (e.g., 把书看完 "finish reading the book"). | Original CTB (33) |
-| **CC** | Coordinating conjunction | Conjunctions connecting parallel elements. Functions to join words, phrases, or clauses of equal status (e.g., 和 "and", 或 "or", 但 "but"). | Original CTB (33) |
-| **CD** | Cardinal number | Numerical values and quantities. Functions to express amounts, counting, or mathematical values (e.g., 一 "one", 两 "two", 一百 "one hundred", 几 "several"). | Original CTB (33) |
-| **CS** | Subordinating conjunction | Conjunctions introducing subordinate clauses. Functions to mark dependent clauses expressing condition, concession, cause, etc. (e.g., 虽然 "although", 因为 "because", 如果 "if"). | Original CTB (33) |
-| **DEC** | 的 in relative clause | The particle 的 modifying nouns in relative clauses. Functions as relativizer or nominalizer (e.g., 我买的书 "the book I bought"). | Original CTB (33) |
-| **DEG** | Associative 的 | The possessive/associative particle 的 showing possession or modification. Functions to link modifiers to head nouns (e.g., 我的书 "my book", 中国的文化 "Chinese culture"). | Original CTB (33) |
-| **DER** | 得 in V-de construction | The particle 得 in verb-complement or result constructions. Functions to introduce degree complements or result/manner descriptions (e.g., 跑得快 "run fast", 说得对 "speak correctly"). | Original CTB (33) |
-| **DEV** | 地 before VP | The particle 地 introducing adverbial modifiers before verbs. Functions to mark manner adverbials derived from adjectives (e.g., 高兴地说 "happily say", 认真地学习 "study seriously"). | Original CTB (33) |
-| **DT** | Determiner | Demonstratives and determiners specifying nouns. Functions to indicate reference or specify which entity (e.g., 这 "this", 那 "that", 每 "every", 各 "each"). | Original CTB (33) |
-| **ETC** | Etcetera word | Words meaning "and so on" or "et cetera". Functions to indicate incomplete lists (e.g., 等 "etc.", 等等 "and so on"). | Original CTB (33) |
-| **FW** | Foreign word | Words from other languages, usually in alphabet. Functions to mark non-Chinese vocabulary, typically English letters or words (e.g., "A", "CD", "WTO"). | Original CTB (33) |
-| **IJ** | Interjection | Exclamations expressing emotion or reaction. Functions as standalone utterances showing feeling or attitude (e.g., 哈哈 "haha", 哎呀 "oh my", 嗯 "mm"). | Original CTB (33) |
-| **JJ** | Other noun-modifier / Adjective | Attributive adjectives modifying nouns, different from predicative use. Functions to describe noun qualities when used attributively (e.g., 新 "new" in "新书", 大 "big" in "大楼"). | Original CTB (33) |
-| **LB** | 被 in long bei-construction | The preposition 被 in full passive constructions with explicit agent. Functions to mark passive voice with by-phrase (e.g., 被他打了 "was hit by him"). | Original CTB (33) |
-| **LC** | Localizer | Locative particles indicating spatial or temporal position. Functions to express location or direction (e.g., 里 "inside", 上 "on/above", 中 "in/among", 前 "before/in front"). | Original CTB (33) |
-| **M** | Measure word / Classifier | Classifiers used with nouns and numbers. Functions to specify countable units or categories (e.g., 个 "general classifier", 本 "book classifier", 位 "person classifier"). | Original CTB (33) |
-| **MSP** | Other particle | Miscellaneous particles with grammatical functions. Functions for special grammatical purposes (e.g., 所 in nominalization constructions). | Original CTB (33) |
-| **NN** | Common noun | General nouns referring to ordinary entities or concepts. Functions as heads of noun phrases for non-proper, non-temporal entities (e.g., 工作 "work", 问题 "problem", 人 "person"). | Original CTB (33) |
-| **NR** | Proper noun | Names of specific people, places, and organizations. Functions to identify unique entities (e.g., 中国 "China", 北京 "Beijing", 李明 "Li Ming"). | Original CTB (33) |
-| **NT** | Temporal noun | Nouns expressing time or temporal concepts. Functions to denote time points, periods, or temporal relations (e.g., 今天 "today", 目前 "currently", 以前 "before", 时候 "time/when"). | Original CTB (33) |
-| **OD** | Ordinal number | Numbers indicating order or sequence. Functions to express ranking or position (e.g., 第一 "first", 第二 "second"). | Original CTB (33) |
-| **ON** | Onomatopoeia | Words imitating sounds. Functions to represent auditory impressions or sound effects in text. | Original CTB (33) |
-| **P** | Preposition (excluding 把 and 被) | General prepositions showing relationships. Functions to indicate location, direction, time, manner, beneficiary, etc. (e.g., 在 "at/in", 从 "from", 对 "to/toward", 为 "for"). | Original CTB (33) |
-| **PN** | Pronoun | Words substituting for nouns. Functions to refer to people, things, or entities contextually (e.g., 我 "I", 你 "you", 他 "he/him", 它 "it", 这 "this", 什么 "what"). | Original CTB (33) |
-| **PU** | Punctuation | Punctuation marks and symbols. Functions to structure text and indicate pauses, boundaries, or intonation (e.g., 。，、！？). | Original CTB (33) |
-| **SB** | 被 in short bei-construction | The preposition 被 in short passive constructions without explicit agent. Functions to mark agentless passive voice (e.g., 被打了 "was hit"). | Original CTB (33) |
-| **SP** | Sentence-final particle | Modal particles at sentence end expressing attitude or mood. Functions to indicate questions, suggestions, assertions, or speaker's stance (e.g., 吗 "question particle", 吧 "suggestion", 呢 "continuation"). | Original CTB (33) |
-| **VA** | Predicative adjective | Adjectives functioning as main predicates without copula. Functions as stative verbs describing qualities or states (e.g., 好 "good/well", 高兴 "happy", 重要 "important"). | Original CTB (33) |
-| **VC** | Copula | The verb 是 and related linking verbs. Functions to link subject with predicate nominal or adjective (e.g., 是 "be", 为 "be", 当作 "regard as"). | Original CTB (33) |
-| **VE** | 有 as main verb | The verb 有 expressing existence or possession. Functions to indicate having or existence (e.g., 有钱 "have money", 有问题 "there's a problem"). | Original CTB (33) |
-| **VV** | Other verb | General verbs not classified elsewhere. Functions as main predicates expressing actions, processes, or changes (e.g., 去 "go", 说 "say", 认为 "think", 发展 "develop"). | Original CTB (33) |
-| **IC** | Incomplete component | Incomplete or fragmented words/morphemes, especially in ASR (automatic speech recognition) output. Functions to mark partial or truncated components that don't form complete linguistic units (e.g., 好xin, 那个ba). | **HanLP Extension** |
-| **EM** | Emoticon or emoji | Emoticons, emoji, and other sentiment symbols. Functions to identify emotional expressions in social media and informal text (e.g., :), ^_^, 😊). | **HanLP Extension** |
-| **NOI** | Noise or garbage text | Unrecognizable characters, corrupted text, or meaningless strings. Functions to mark text that should be filtered or ignored in processing (e.g., encoding errors, random characters). | **HanLP Extension** |
-| **URL** | Web address / URL | Internet addresses and web links. Functions to mark URLs and web addresses in modern Chinese text (e.g., http://example.com, www.example.cn). | **HanLP Extension** |
-"""
+**YOU MUST**:
+- **Keep all original text exactly as they appear - do NOT modify, correct, or rephrase any words**
+- Tag each token individually by DEFAULT
+- Ensure every token is covered in your output
 
-ZH_CTB_EXAMPLE = """**Text**: "沙瑞山的工作就是根据卫星观测数据，重新绘制一幅更精确的全宇宙微波辐射背景图。"
+## 2. THE COMPLETE TAGSET
+
+{tagset}
+
+## 3. OUTPUT FORMAT
+
+Return a JSON list. Each object must contain:
+
+- `token`: The individual token.
+- `tag`: The POS tag code for that token.
+- `desc`: The description of that tag from the reference table.
+
+## 4. EXAMPLES
+
+{example}
+
+---
+
+**YOUR TASK**:
+
+Annotate the following tokens. Tag each token following ALL the rules above.
+
+**Text**: {text}
 
 **Output JSON**:
-[
-    {{'token': '沙瑞山', 'tag': 'NR', 'desc': 'Proper noun'}},
-    {{'token': '的', 'tag': 'DEG', 'desc': 'Associative 的'}},
-    {{'token': '工作', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '就', 'tag': 'AD', 'desc': 'Adverb'}},
-    {{'token': '是', 'tag': 'VC', 'desc': 'Copula'}},
-    {{'token': '根据', 'tag': 'P', 'desc': ' Preposition (excluding 把 and 被)'}},
-    {{'token': '卫星', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '观测', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '数据', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '，', 'tag': 'PU', 'desc': 'Punctuation'}},
-    {{'token': '重新', 'tag': 'AD', 'desc': 'Adverb'}},
-    {{'token': '绘制', 'tag': 'VV', 'desc': 'Other verb'}},
-    {{'token': '一', 'tag': 'CD', 'desc': 'Cardinal number'}},
-    {{'token': '幅', 'tag': 'M', 'desc': 'Measure word'}},
-    {{'token': '更', 'tag': 'AD', 'desc': 'Adverb'}},
-    {{'token': '精确', 'tag': 'VA', 'desc': 'Predicative adjective'}},
-    {{'token': '的', 'tag': 'DEC', 'desc': '的 in relative clause'}},
-    {{'token': '全', 'tag': 'DT', 'desc': 'Determiner'}},
-    {{'token': '宇宙', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '微波', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '辐射', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '背景', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '图', 'tag': 'NN', 'desc': 'Common noun'}},
-    {{'token': '。', 'tag': 'PU', 'desc': 'Punctuation'}},
-]
 """
 
 # === PKU 汉语词性赋码集 ===
-
-ZH_PKU_NAME = """HanLP's PKU POS Tagset (北大计算语言学研究所词性标注集)"""
 
 # 43 tags
 # https://github.com/lancopku/pkuseg-python/blob/master/tags.txt
 # https://github.com/hankcs/HanLP/blob/ddb1299bddff079e447af52ec12549c50636bfa8/docs/annotations/pos/pku.md
 
 ZH_PKU_TAGSET = """
-| Label | Description | Explanation | Tag Origin |
-|-------|-------------|-------------|------------|
-| **a** | Adjective | General adjectives describing qualities or states. Functions to modify nouns or serve as predicates (e.g., 大 "big", 好 "good", 重要 "important"). | Original PKU (26 basic) |
-| **ad** | Adjective as adverbial | Adjectives functioning as adverbials. Functions to modify verbs (e.g., 积极 "actively"). | PKU detailed tag (36) |
-| **Ag** | Adjectival morpheme | Bound morphemes with adjectival function. Functions as components in compound words that contribute adjectival meaning. | PKU detailed tag (36) |
-| **an** | Nominal adjective | Adjectives that can function as nouns. Functions to describe entities that can stand alone as nominals. | PKU detailed tag (36) |
-| **b** | Distinguishing word | Words expressing distinction or classification, often modifying nouns. Functions to differentiate categories (e.g., 大型 "large-scale", 多种 "multiple types"). | Original PKU (26 basic) |
-| **Bg** | Distinguishing word morpheme | Bound morphemes with distinguishing/classification function. Functions as morphemic components for words expressing distinction or differentiation (e.g., 橙 "orange" in color words, distinguishing different categories). | PKU detailed tag (36) |
-| **c** | Conjunction | Connectives linking words, phrases, or clauses. Functions to express logical relationships (e.g., 和 "and", 或者 "or", 但是 "but"). | Original PKU (26 basic) |
-| **d** | Adverb | Words modifying verbs, adjectives, or other adverbs. Functions to express manner, degree, time, scope, or negation (e.g., 很 "very", 也 "also", 不 "not"). | Original PKU (26 basic) |
-| **Dg** | Adverb morpheme | Bound morphemes with adverbial function. Functions as components contributing adverbial meaning in compounds. | PKU detailed tag (36) |
-| **e** | Interjection | Exclamations expressing emotion or response. Functions as standalone utterances showing feeling (e.g., 啊 "ah", 哎呀 "oh my"). | Original PKU (26 basic) |
-| **f** | Directional/Localizer | Direction words and location markers. Functions to indicate spatial or directional relationships (e.g., 上 "up/on", 里 "inside", 前 "front"). | Original PKU (26 basic) |
-| **h** | Prefix | Prefixes attached to word beginnings. Functions to modify or specify word meaning (e.g., 第 in 第一 "first", 老 in 老师 "teacher"). | Original PKU (26 basic) |
-| **i** | Idiom | Fixed idiomatic expressions and set phrases. Functions as lexical units with non-compositional meanings (e.g., 四字成语 four-character idioms). | Original PKU (26 basic) |
-| **j** | Abbreviation | Shortened forms of longer expressions. Functions to represent organizations, concepts, or phrases concisely (e.g., 北大 for 北京大学). | Original PKU (26 basic) |
-| **k** | Suffix | Suffixes attached to word endings. Functions to derive new words or indicate grammatical features (e.g., 性 "-ness", 化 "-ization", 们 plural marker). | Original PKU (26 basic) |
-| **l** | Idiom or fixed phrase | Fixed expressions treated as units (alternative idiom tag). Functions similarly to 'i' for set expressions. | Original PKU (26 basic) |
-| **m** | Numeral | Numbers and numerical expressions. Functions to express quantity or amount (e.g., 一 "one", 三 "three", 几 "several"). | Original PKU (26 basic) |
-| **Mg** | Numeral morpheme | Bound morphemes with numerical meaning. Functions as numerical components in compounds. | PKU detailed tag (36) |
-| **n** | Common noun | General nouns for ordinary entities and concepts. Functions as heads of noun phrases (e.g., 人 "person", 工作 "work", 国家 "country"). | Original PKU (26 basic) |
-| **Ng** | Noun morpheme | Bound morphemes with nominal function. Functions as noun-like components in compounds. | PKU detailed tag (36) |
-| **nr** | Personal name | Names of people. Functions to identify individuals (e.g., 张三 "Zhang San", 李明 "Li Ming"). | Original PKU (26 basic) |
-| **ns** | Place name | Geographic locations and place names. Functions to identify locations (e.g., 北京 "Beijing", 中国 "China"). | Original PKU (26 basic) |
-| **nt** | Organization name | Names of organizations, companies, and institutions. Functions to identify organizational entities (e.g., 联合国 "United Nations", 公司 "company"). | Original PKU (26 basic) |
-| **nx** | Non-Chinese name/Transliteration | Foreign names or transliterated words. Functions to mark non-Chinese proper nouns (e.g., English names, foreign terms). | PKU detailed tag (36) |
-| **nz** | Other proper noun | Proper nouns not classified as nr, ns, or nt. Functions for miscellaneous named entities and brands. | Original PKU (26 basic) |
-| **o** | Onomatopoeia | Sound-imitating words. Functions to represent auditory impressions (e.g., 哈哈 "haha", 咚咚 "thump thump"). | Original PKU (26 basic) |
-| **p** | Preposition | Words governing nouns to show relationships. Functions to indicate location, direction, time, or manner (e.g., 在 "at", 从 "from", 对 "to/toward"). | Original PKU (26 basic) |
-| **q** | Classifier/Measure word | Classifiers used with nouns and numbers. Functions to specify countable units (e.g., 个 "general classifier", 本 "book classifier", 位 "person classifier"). | Original PKU (26 basic) |
-| **r** | Pronoun | Words substituting for nouns or noun phrases. Functions to refer anaphorically or deictically (e.g., 我 "I", 你 "you", 他 "he/him", 这 "this"). | Original PKU (26 basic) |
-| **Rg** | Pronominal morpheme | Bound morphemes with pronominal function. Functions as pronoun-like components in compounds. | PKU detailed tag (36) |
-| **s** | Space word/Locative | Spatial words and location expressions. Functions to denote places or spaces. | Original PKU (26 basic) |
-| **t** | Time word/Temporal noun | Words expressing time or temporal concepts. Functions to indicate time points or periods (e.g., 今天 "today", 现在 "now", 以前 "before"). | Original PKU (26 basic) |
-| **Tg** | Temporal morpheme | Bound morphemes with temporal meaning. Functions as time-related components in compounds. | PKU detailed tag (36) |
-| **u** | Auxiliary/Particle | Function words including particles and auxiliaries. Functions for grammatical purposes (e.g., 的 possessive, 地 adverbial, 得 complement marker, 着/了/过 aspect markers). | Original PKU (26 basic) |
-| **v** | Verb | General verbs expressing actions, processes, or states. Functions as main predicates (e.g., 是 "be", 有 "have", 做 "do", 说 "say", 去 "go"). | Original PKU (26 basic) |
-| **vd** | Verb as adverbial | Verbs directly functioning as adverbials (状语). Functions to modify other verbs, combining verbal and adverbial characteristics (e.g., 持续 in 持续好转 "continuously improve", 错 in 收错了 "mistakenly collected"). | PKU detailed tag (36) |
-| **Vg** | Verb morpheme | Bound morphemes with verbal function. Functions as verb-like components in compounds. | PKU detailed tag (36) |
-| **vn** | Verbal noun | Nouns derived from or related to verbs, often gerunds. Functions as nominalizations (e.g., 研究 "research", 发展 "development"). | PKU detailed tag (36) |
-| **w** | Punctuation | Punctuation marks and symbols. Functions to structure text (e.g., 。，！？；：). | Original PKU (26 basic) |
-| **x** | Unclassified/String | Unclassifiable items or character strings. Functions as catch-all for unclear or non-standard elements. | Original PKU (26 basic) |
-| **y** | Modal particle | Sentence-final or modal particles. Functions to express mood, attitude, or questioning (e.g., 吗 "question", 吧 "suggestion", 呢 "continuation"). | Original PKU (26 basic) |
-| **Yg** | Modal particle morpheme | Bound morphemes with modal particle function. Functions as morphemic components contributing modal or sentence-final particle meaning in compounds (e.g., 耳 in classical Chinese modal expressions). | PKU detailed tag (36) |
-| **z** | Descriptive word/Stative verb | Descriptive or stative words. Functions to describe states or properties. | Original PKU (26 basic) |
+| Label | Description | Explanation |
+|-------|-------------|-------------|
+| **a** | Adjective | General adjectives describing qualities or states. Functions to modify nouns or serve as predicates. Example: 重要/a 步伐/n, 做/v 稳/a |
+| **ad** | Adjective as adverbial | Adjectives functioning as adverbials. Functions to modify verbs. Example: 积极/ad 谋求/v, 及时/ad 报告/v |
+| **Ag** | Adjectival morpheme | Bound morphemes with adjectival function. Functions as components in compound words that contribute adjectival meaning. Example: 绿色/n 似/d 锦/Ag |
+| **an** | Adjective as noun | Adjectives that can function as nouns. Functions to describe entities that can stand alone as nominals. Example: 外交/n 和/c 安全/an |
+| **b** | Distinguishing word | Words expressing distinction or classification, often modifying nouns. Functions to differentiate categories. Example: 女/b 司机/n, 金/b 手镯/n |
+| **Bg** | Distinguishing word morpheme | Bound morphemes with distinguishing/classification function. Functions as morphemic components for words expressing distinction or differentiation. Example: 赤/Ag 橙/Bg 黄/a 绿/a 青/a 蓝/a 紫/a |
+| **c** | Conjunction | Connectives linking words, phrases, or clauses. Functions to express logical relationships. Example: 合作/vn 与/c 伙伴/n |
+| **d** | Adverb | Words modifying verbs, adjectives, or other adverbs. Functions to express manner, degree, time, scope, or negation. Example: 进一步/d 发展, 约/d 一百/m 个/q |
+| **Dg** | Adverb morpheme | Bound morphemes with adverbial function. Functions as components contributing adverbial meaning in compounds. Example: 了解/v 甚/Dg 深/a |
+| **e** | Interjection | Exclamations expressing emotion or response. Functions as standalone utterances showing feeling. Example: 啊/e ，/w 那/r 金灿灿/z 的/u 麦穗/n |
+| **f** | Directional/Localizer | Direction words and location markers. Functions to indicate spatial or directional relationships. Example: 床/n 下/f, 军人/n 的/u 眼睛/n 里/f 不/d 是/v 没有/v 风景/n |
+| **h** | Prefix | Prefixes attached to word beginnings. Functions to modify or specify word meanins. Example: 许多/m 非/h 主角/n 人物/n |
+| **i** | Idiom | Fixed idiomatic expressions and set phrases. Functions as lexical units with non-compositional meanings. Example: 义无反顾/i, 其他四字成语 |
+| **j** | Abbreviation | Shortened forms of longer expressions. Functions to represent organizations, concepts, or phrases concisely. Example: 德/j 外长/n, 文教/j |
+| **k** | Suffix | Suffixes attached to word endings. Functions to derive new words or indicate grammatical features. Example: 少年儿童/l 朋友/n 们/k, 身体/n 健康/a 者/k |
+| **l** | Idiom or fixed phrase | Idiomatic expressions have not yet become set idioms; they have a somewhat "temporary" nature. Example: 少年儿童/l 朋友/n 们/k, 由此可见/l |
+| **m** | Numeral | Numbers and numerical expressions. Functions to express quantity or amount.  Case 1: Quantifier phrases should be segmented into numerals and measure words. Example: 三/m 个/q, 10/m 公斤/q, 一/m 盒/q 点心/n But a few quantity words are already registered entries in the dictionary, so they should not be further segmented. Example: 一个/m, 一些/m Case 2: Cardinal numbers, ordinal numbers, decimals, fractions, and percentages should not be segmented and are treated as one segmentation unit, marked as m. Example: 一百二十三/m, 20万/m, 123.54/m, 一个/m, 第一/m, 第三十五/m, 20%/m, 三分之二/m, 千分之三十/m, 几十/m 人/n, 十几万/m 元/q, 第一百零一/m 个/q  Case 3: Approximate numbers, when preceded by adverbs or adjectives, or followed by "来", "多", "左右" and other number-assisting words, should be separated. Example: 约/d 一百/m 多/m 万/m, 仅/d 一百/m 个/q, 四十/m 来/m 个/q, 二十/m 余/m 只/q, 十几/m 个/q, 三十/m 左右/m. Case 4: Two consecutive numerals, as well as expressions like "成百" and "上千”, should not be segmented. Example: 五六/m 年/q, 七八/m 天/q, 十七八/m 岁/q, 成百/m 学生/n, 上千/m 人/n Case 5: "Numeral + noun" structures expressing sequential relationships should be segmented. Example: 二/m 连/n, 三/m 部/n |
+| **Mg** | Numeral morpheme | Bound morphemes with numerical meaning. Functions as numerical components in compounds. Example: 甲/Mg 减下/v 的/u 人/n 让/v 乙/Mg 背上/v, 凡/d “/w 寅/Mg 年/n ”/w 中/f 出生/v 的/u 人/n 生肖/n 都/d 属/v 虎/n |
+| **n** | Common noun | General nouns for ordinary entities and concepts. Functions as heads of noun phrases. Example: 岗位/n, 城市/n, 机会/n, 她/r 是/v 责任/n 编辑/n |
+| **Ng** | Noun morpheme | Bound morphemes with nominal function. Functions as noun-like components in compounds. Example: 出/v 过/u 两/m 天/q 差/Ng, 理/v 了/u 一/m 次/q 发/Ng |
+| **nr** | Personal name | Names of people. Functions to identify individuals. Case 1: Surnames and given names of Han Chinese people, as well as those of non-Han people who use the same naming conventions as the Han, are segmented separately and each is tagged as nr. Example: 张/nr 仁伟/nr, 欧阳/nr 修/nr, 阮/nr 志雄/nr, 朴/nr 贞爱/nr Case 2: In addition to single-character and compound surnames, Han Chinese people also have double surnames; that is, some women, after marriage, add their husband’s surname to their original surname. In this situation, both surnames should be segmented and labeled as nr. Example: 陈/nr 方/nr 安生/nr, 唐/nr 鲁氏/nr Case 3: Job titles, honorifics, or titles after surnames should be separated. Example: 江/nr 主席/n, 小平/nr 同志/n, 江/nr 总书记/n, 张/nr 教授/n, 王/nr 部长/n, 陈/nr 老总/n, 李/nr 大娘/n, 刘/nr 阿姨/n, 龙/nr 姑姑/n Case 4: If a person’s abbreviation, honorific, or similar form consists of two characters, it is treated as a single segmentation unit and tagged as nr. Example: 老张/nr, 大李/nr, 小郝/nr, 郭老/nr, 陈总/nr Case 5: Clearly ranked kinship titles should be segmented; those not clearly ranked should not be segmented. Example: 三/m 哥/n, 大嫂/n, 大/a 女儿/n, 大哥/n, 小弟/n, 老爸/n Case 6: Some famous writers whose names or pen names are not easily distinguishable by surname and given name should be treated as one segmentation unit. Example: 鲁迅/nr, 茅盾/nr, 巴金/nr, 三毛/nr, 琼瑶/nr, 白桦/nr Case 7: For foreign names or the transliterated names of ethnic minority people (including the surnames of Japanese people) should not be segmented and should be labeled as nr. Example: 克林顿/nr, 叶利钦/nr, 才旦卓玛/nr, 小林多喜二/nr, 北研二/nr, 华盛顿/nr, 爱因斯坦/nr. Case 8: For some Western people's surnames that have a middle dot, do not segment. Example: 卡尔·马克思/nr |
+| **ns** | Place name | Geographic locations and place names. Functions to identify locations. General example: 安徽/ns, 深圳/ns, 杭州/ns, 拉萨/ns, 哈尔滨/ns, 呼和浩特/ns, 乌鲁木齐/ns, 长江/ns, 黄海/ns, 太平洋/ns, 泰山/ns, 华山/ns, 亚洲/ns, 海南岛/ns, 太湖/ns, 白洋淀/ns, 俄罗斯/ns, 哈萨克斯坦/ns, 彼得堡/ns, 伏尔加格勒/ns Case 1: Country names regardless of length should be treated as one segmentation unit. Example: 中国/ns, 中华人民共和国/ns, 日本国/ns, 美利坚合众国/ns, 美国/ns Case 2: Place names with "省", "市", "县", "区", "乡", "镇", "村", "旗", "州", "都", "府", "道" and other single-character administrative division name suffixes should not be segmented and should be treated as one segmentation unit. Example: 四川省/ns, 天津市/ns, 景德镇/ns 沙市市/ns, 牡丹江市/ns, 正定县/ns, 海淀区/ns, 通州区/ns, 东井乡/ns, 双桥镇/ns 南化村/ns, 华盛顿州/ns, 俄亥俄州/ns, 东京都/ns, 大阪府/ns, 北海道/ns, 长野县/ns, 开封府/ns, 宣城县/ns Case 3: If a place name is followed by a one-character common noun indicating terrain or landform—such as “江, 河, 山, 洋, 海, 岛, 峰, 湖,” etc.—it should not be segmented. Example: 鸭绿江/ns，亚马逊河/ns， 喜马拉雅山/ns， 珠穆朗玛峰/ns，地中海/ns，大西洋/ns，洞庭湖/ns， 塞普路斯岛/n Case 4: When a place name is followed by a naturally formed common noun for a character like "街, 路, 道, 巷, 里, 町, 庄, 村, 弄, 堡", etc., it should not be segmented. Example: 中关村/ns, 长安街/ns, 学院路/ns, 景德镇/ns, 吴家堡/ns, 庞各庄/ns, 三元里/ns, 彼得堡/ns, 北京市巷/ns. |
+| **nt** | Organization name | Names of organizations, companies, and institutions. Functions to identify organizational entities. General example: 联合国/nt, 中共中央/nt, 国务院/nt, 北京大学/nt 外交部/nt, 财政部/nt，教育部/nt, 国防部/nt |
+| **nx** | Non-Chinese name/Transliteration | Foreign names or transliterated words. Functions to mark non-Chinese proper nouns. Example: A/nx 公司/n, B/nx 先生/n, X/nx 君/Ng, 24/m K/nx 镀金/n, C/nx 是/v 光速/n, Windows98/nx, PentiumIV/nx, I LOVE THIS GAME/nx, HanLP/nx |
+| **nz** | Other proper noun | Proper nouns not classified as nr, ns, or nt. Functions for miscellaneous named entities and brands. General example: 满族/nz, 俄罗斯族/nz, 汉语/nz, 罗马利亚语/nz, 捷克语/nz, 中文/nz, 英文/nz, 满人/nz, 哈萨克人/nz, 诺贝尔奖/nz, 茅盾奖/nz Case 1: Transportation lines containing proper names (or abbreviations) are labeled as nz. Example: 津浦路/nz, 石太线/nz Case 2: When a proper name is followed by a polysyllabic noun such as "语言", "文学", "文化", "方式", "精神", etc., and loses its specificity, it should be segmented. Example: 欧洲/ns 语言/n, 法国/ns 文学/n, 西方/ns 文化/n, 贝多芬/nr 交响乐/n, 雷锋/nr 精神/n, 美国/ns 方式/n, 日本/ns 料理/n, 宋朝/t 古董/n Case 3: Trademarks (including proper names and words like "牌", "型", etc. that follow them) have specific reference and are labeled as nz, but the products that follow them are still labeled as common nouns n. Example: 康师傅/nr 方便面/n, 中华牌/nz 香烟/n, 牡丹III型/nz 电视机/n, 联想/nz 电脑/n， 鳄鱼/nz 衬衣/n, 耐克/nz 鞋/n Case 4: Names designated by serial numbers are generally not considered as proper names. Example: 2/m 号/q 国道/n Case 5: The titles of books, newspapers, magazines, documents, reports, agreements, contracts, etc. are typically identified by book title marks (《》) and are not considered proper nouns. Since these titles are often lengthy, the titles themselves are handled following standard processing rules. Example: 《/w 宁波/ns 日报/n 》/w,《/w 鲁迅/nr 全集/n 》/w, 中华/nz 读书/vn 报/n, 杜甫/nr 诗选/n Case 6: A small number of book titles, newspaper and magazine names, and other proper names should not be segmented. Example: 红楼梦/nz, 人民日报/nz, 儒林外史/nz Case 7: When it's impossible to determine whether certain proper names are personal names, place names, or institutional names, they are provisionally marked as nz. |
+| **o** | Onomatopoeia | Sound-imitating words. Functions to represent auditory impressions. Example:哈哈/o 一/m 笑/v, 装载机/n 隆隆/o 推进/v |
+| **p** | Preposition | Words governing nouns to show relationships. Functions to indicate location, direction, time, or manner. Example: 对/p 子孙后代/n 负责/v , 以/p 煤/n 养/v 农/Ng, 为/p 治理/v 荒山/n 服务/v, 把/p 青年/n 推/v 上/v 了/u 领导/vn 岗位/n |
+| **q** | Classifier/Measure word (see m: Numeral)| Classifiers used with nouns and numbers. Functions to specify countable units. Example: 首/m 批/q, 一/m 年/q |
+| **r** | Pronoun | Words substituting for nouns or noun phrases. Functions to refer anaphorically or deictically. When the single-syllable pronouns "本," "每," "各," "诸" are followed by single-syllable nouns, they merge with the following noun to form a pronoun; when followed by two-syllable nouns, they should be separated. Example: 本报/r, 每人/r, 本社/r, 本/r 地区/n, 各/r 部门/n |
+| **Rg** | Pronominal morpheme | Bound morphemes with pronominal function. Functions as pronoun-like components in compounds. Example: 读者/n 就/d 是/v 这/r 两/m 棵/q 小树/n 扎根/v 于/p 斯/Rg 、/w, 成长/v 于/p 斯/Rg 的/u 肥田/n 沃土/n |
+| **s** | Space word/Locative | Spatial words and location expressions. Functions to denote places or spaces. Example: 家里/s 的/u 电脑/n 都/d 联通/v 了/u 国际/n 互联网/n, 西部/s 交通/n 咽喉/n |
+| **t** | Time word/Temporal noun | Words expressing time or temporal concepts. Functions to indicate time points or periods. Case 1: Year, month, day, hour, minute, and second should be segmented by year, month, day, hour, minute, and second, and labeled as t. Example: 1997年/t 3月/t 19日/t 下午/t 2时/t 18分/t Case 2: If there are no time indicators like "年, 月, 日, 时, 分, 秒" after the numbers, they should be labeled as numeral m. Example: 1998/m 中文/n 信息/n 处理/vn 国际/n 会议/n Case 3: Although historical dynasty names have the nature of proper nouns, they are still labeled as t. Example: 西周/t, 秦朝/t, 东汉/t, 南北朝/t, 清代/t Case 4: "牛年, 虎年" etc. should not be segmented at all, and are labeled as t. Example: 牛年/t, 虎年/t, 甲午年/t, 甲午/t 战争/n, 庚子/t 赔款/n, 戊戌/t 变法/n |
+| **Tg** | Temporal morpheme | Bound morphemes with temporal meaning. Functions as time-related components in compounds. Example: 3日/t 晚/Tg 在/p 总统府/n 发表/v 声明/n ，尊重/v 现/Tg 执政/vn 当局/n 的/u 权威/n |
+| **u** | Auxiliary/Particle | Function words including particles and auxiliaries. Functions for grammatical purposes. Example: 的, 地, 得, 着/了/过 aspect markers) |
+| **v** | Verb | General verbs expressing actions, processes, or states. Functions as main predicates. Example: 奠定/v 了/u 基础/n, 总结/v 经验/n |
+| **vd** | Verb as adverbial | Verbs directly functioning as adverbials (状语). Functions to modify other verbs, combining verbal and adverbial characteristics. Example: 形势/n 会/v 持续/vd 好转/v, 认为/v 是/v 电话局/n 收/v 错/vd 了/u 费/n |
+| **Vg** | Verb morpheme | Bound morphemes with verbal function. Functions as verb-like components in compounds. Example: 洗/v 了/u 一个/m 舒舒服服/z 的/u 澡/Vg |
+| **vn** | Verb as noun | Verbs that function as nouns. Example: 引起/v 人们/n 的/u 关注/vn 和/c 思考/vn, 收费/vn 电话/n 的/u 号码/n |
+| **w** | Punctuation | Punctuation marks and symbols. Functions to structure text. Example: , 。，！？；：). |
+| **x** | Unclassified/String | Unclassifiable items or character strings. Functions as catch-all for unclear or non-standard elements. |
+| **y** | Sentence-final particle | Functions to express mood, attitude, or questioning. Example: 会/v 泄露/v 用户/n 隐私/n 吗/y, 又/d 何在/v 呢/y ？/w, 北京/ns 到/v 了/y, 我/r 和/p 他/r 见面/v 了/y |
+| **Yg** | Modal particle morpheme | Bound morphemes with modal particle function. Functions as morphemic components contributing modal or sentence-final particle meaning in compounds. Example: 唯/d 大力/d 者/k 能/v 致/v 之/u 耳/Yg |
+| **z** | Descriptive word/Stative verb | Descriptive or stative words. Functions to describe states or properties. Example: 取得/v 扎扎实实/z 的/u 突破性/n 进展/vn, 四季/n 常青/z 的/u 热带/n 树木/n, 短短/z 几/m 年/q 间 |
 """
 
-ZH_PKU_EXAMPLE = """**Text**: "沙瑞山的工作就是根据卫星观测数据，重新绘制一幅更精确的全宇宙微波辐射背景图。"
+ZH_PKU_EXAMPLE = """### Example 1:
+
+**Text**: "领导对这件事有考虑"
 
 **Output JSON**: 
 [
-  {{'token': '沙瑞山', 'tag': 'nr', 'desc': 'Personal name'}},
+  {{'token': '领导', 'tag': 'n', 'desc': 'Common noun'}},
+  {{'token': '对', 'tag': 'p', 'desc': 'Preposition'}},
+  {{'token': '这', 'tag': 'r', 'desc': 'Pronoun'}},
+  {{'token': '件', 'tag': 'q', 'desc': 'Classifier/Measure word'}},
+  {{'token': '事', 'tag': 'n', 'desc': 'Common noun'}},
+  {{'token': '有', 'tag': 'v', 'desc': 'Verb'}},
+  {{'token': '考虑', 'tag': 'vn', 'desc': 'Verb as noun'}},
+]
+
+### Example 2:
+
+**Text**: "予以严肃处理"
+
+**Output JSON**: 
+[
+  {{'token': '予以', 'tag': 'v', 'desc': 'Verb'}},
+  {{'token': '严肃', 'tag': 'a', 'desc': 'Adjective'}},
+  {{'token': '处理', 'tag': 'vn', 'desc': 'Verb as noun'}},
+]
+
+### Example 3:
+
+**Text**: 北京到了
+
+**Output JSON**: 
+[
+  {{'token': '北京', 'tag': 'ns', 'desc': 'Place name'}},
+  {{'token': '到', 'tag': 'v', 'desc': 'Verb'}},
+  {{'token': '了', 'tag': 'y', 'desc': 'Sentence-final particle'}},
+]
+
+### Example 4:
+
+**Text**: "维护环境的整洁"
+
+**Output JSON**: 
+[
+  {{'token': '维护', 'tag': 'v', 'desc': 'Verb'}},
+  {{'token': '环境', 'tag': 'a', 'desc': 'Adjective'}},
   {{'token': '的', 'tag': 'u', 'desc': 'Auxiliary/Particle'}},
-  {{'token': '工作', 'tag': 'vn', 'desc': 'Verbal noun'}},
-  {{'token': '就', 'tag': 'd', 'desc': 'Adverb'}},
-  {{'token': '是', 'tag': 'v', 'desc': 'Verb'}},
-  {{'token': '根据', 'tag': 'p', 'desc': 'Preposition'}},
-  {{'token': '卫星', 'tag': 'n', 'desc': 'Common noun'}},
-  {{'token': '观测', 'tag': 'vn', 'desc': 'Verbal noun'}},
-  {{'token': '数据', 'tag': 'n', 'desc': 'Common noun'}},
-  {{'token': '，', 'tag': 'w', 'desc': 'Punctuation'}},
-  {{'token': '重新', 'tag': 'd', 'desc': 'Adverb'}},
-  {{'token': '绘制', 'tag': 'v', 'desc': 'Verb'}},
-  {{'token': '一', 'tag': 'm', 'desc': 'Numeral'}},
-  {{'token': '幅', 'tag': 'q', 'desc': 'Classifier/Measure word'}},
-  {{'token': '更', 'tag': 'd', 'desc': 'Adverb'}},
-  {{'token': '精确', 'tag': 'a', 'desc': 'Adjective'}},
-  {{'token': '的', 'tag': 'u', 'desc': 'Auxiliary/Particle'}},
-  {{'token': '全', 'tag': 'a', 'desc': 'Adjective'}},
-  {{'token': '宇宙', 'tag': 'n', 'desc': 'Common noun'}},
-  {{'token': '微波', 'tag': 'n', 'desc': 'Common noun'}},
-  {{'token': '辐射', 'tag': 'vn', 'desc': 'Verbal noun'}},
-  {{'token': '背景', 'tag': 'n', 'desc': 'Common noun'}},
-  {{'token': '图', 'tag': 'n', 'desc': 'Common noun'}},
-  {{'token': '。', 'tag': 'w', 'desc': 'Punctuation'}},
+  {{'token': '整洁', 'tag': 'an', 'desc': 'Adjective as noun'}},
 ]
 """

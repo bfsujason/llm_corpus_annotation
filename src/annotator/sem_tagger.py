@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 from tqdm import tqdm
 from collections import defaultdict
 
-from src.annotator.tokenizer import Tokenizer
+from src.utils import clean_text, split_sents
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -24,31 +24,33 @@ class SEMTagger:
         tagset='usas',
         mode='local',
         llm_model=None,
-        device=None,
+        enable_thinking=False,
     ):
         """
-        :param lang:        语种 str
-                            [chinese]:  中文
-                            [english]:  英文
-        :param tagset:      标注集 str
-                            [usas]:     兰卡斯特语义标注集
-                            https://ucrel.lancs.ac.uk/usas/
-        :param mode:        标注模式 str
-                            [local]:    本地预训练模型
-                            [llm]:      大模型 API
-        :param llm_model:   大模型名称 str | None
-                            [deepseek-v3.2]:  DeepSeek V3.2
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2868565
-                            [glm-4.7]:        GLM-4.7
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
-                            [qwen3-max]:      Qwen3-Max
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
-                            [None]:           DeepSeek V3.2
-        :param device:      设备 int | None
-                            [-1]:     CPU
-                            [0]:      GPU
-                            [None]:   自动选择  
-        :return:            SEMTagger Pipeline 实例
+        :param lang:            语种 str
+                                [chinese]:  中文
+                                [english]:  英文
+        :param tagset:          标注集 str
+                                [usas]:     兰卡斯特语义标注集
+                                https://ucrel.lancs.ac.uk/usas/
+        :param mode:            标注模式 str
+                                [local]:    本地预训练模型
+                                [llm]:      大模型 API
+        :param llm_model:       大模型名称 str | None
+                                [kimi-k2.5]:      Kimi-k2.5
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2948482
+                                [deepseek-v3.2]:  DeepSeek V3.2
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2868565
+                                [glm-4.7]:        GLM-4.7
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
+                                [qwen3-max]:      Qwen3-Max
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
+                                [None]:           DeepSeek V3.2
+        :param enable_thinking: 思考模式 | Boolean
+                                [True]:     开启
+                                [False]:    关闭
+        :return:                DEPParser Pipeline 实例
+        :return:                SEMTagger Pipeline 实例
         """
         
         # 参数校验
@@ -78,13 +80,15 @@ class SEMTagger:
         self.lang = lang
         self.tagset = tagset
         self.mode = mode
-        self.tokenizer = Tokenizer(lang=lang)
+        self.enable_thinking = enable_thinking
         
         if mode == 'local':
             import spacy
             from spacy.tokens import Doc
+            from src.annotator.tokenizer import Tokenizer
             
             self.doc = Doc
+            self.tokenizer = Tokenizer(lang=lang, mode='local')
             
             if lang == 'chinese':
                 # === 加载中文语义标注模型 ===
@@ -122,6 +126,7 @@ class SEMTagger:
         """
         :param text:    输入文本 str
         :return:        标注结果 dict
+                        [text]:     输入文本 str
                         [sent]:     分句结果 [list]
                         [tok]:      分词结果 [list]
                         [usas]:     语义赋码 [list]
@@ -133,40 +138,41 @@ class SEMTagger:
             
     def _llm_tag(self, text):
         tagset = self.tagset.upper()
-        if self.lang == 'english':
-            example_name = f'EN_{tagset}_EXAMPLE'
-            prompt_tmpl = self.prompt.EN_USAS_PROMPT
-        elif self.lang == 'chinese':
-            example_name = f'ZH_{tagset}_EXAMPLE'
-            prompt_tmpl = self.prompt.ZH_USAS_PROMPT
         
-        scheme = getattr(self.prompt, 'USAS_NAME')
+        if self.lang == 'english':
+            prompt_name = f'EN_{tagset}_PROMPT'
+            example_name = f'EN_{tagset}_EXAMPLE'
+            tagset_name = f'EN_{tagset}_TAGSET'
+        elif self.lang == 'chinese':
+            prompt_name = f'ZH_{tagset}_PROMPT'
+            example_name = f'ZH_{tagset}_EXAMPLE'
+            tagset_name = f'ZH_{tagset}_TAGSET'
+        
+        prompt_tmpl = getattr(self.prompt, prompt_name)
         example = getattr(self.prompt, example_name)
-        tagset = getattr(self.prompt, 'USAS_TAGSET')
+        tagset = getattr(self.prompt, tagset_name)
         
         result = {}
-        tok_sents = self.tokenizer.tokenize(text)
-        toks = [tok for sent in tok_sents['tok'] for tok in sent]
-        #print(tok_sents)
+        text = clean_text(text)
+        sents = split_sents(text, lang=self.lang)
         
-        result['sent'] = tok_sents['sent']
-        text = ' '.join(result['sent'])
+        result['text'] = text
+        result['sent'] = sents['sent']
         
         # 构造 Prompt
         prompt = prompt_tmpl.format(
-            lang=self.lang,
-            scheme=scheme,
             tagset=tagset,
             example=example,
             text=json.dumps(text, ensure_ascii=False),
-            tokens=json.dumps(toks, ensure_ascii=False),
+            #tokens=json.dumps(toks, ensure_ascii=False),
         )
         #print(prompt)
         
         # 调用大模型
         try:
-            response = self.pipeline.get_json_response(
-                prompt=prompt, 
+            response = self.pipeline.get_response(
+                prompt=prompt,
+                json_output=True,
             )
             #print(response)
             tokens, tags = self._convert_llm_response(response)
@@ -184,6 +190,7 @@ class SEMTagger:
         
         result = {}
         tok_sents = self.tokenizer.tokenize(text)
+        result['text'] = tok_sents['text']
         result['sent'] = tok_sents['sent']
         
         toks = [tok for sent in tok_sents['tok'] for tok in sent]
@@ -306,7 +313,7 @@ def compare_annos(
     annos_2_name,
     show_diff=True,
 ):
-    #intersections, unions = 0, 0
+    intersections, unions = 0, 0
     for anno_1, anno_2 in zip(annos_1, annos_2):
         print(f'\n[ID]: {anno_1["id"]}')
         print(f'{anno_1["text"]}')
@@ -325,11 +332,11 @@ def compare_annos(
         
         intersection = set_1 & set_2
         union = set_1 | set_2
-        #jac = len(intersection) / len(union)
-        #print(f'Jaccard: {jac:.3f}')
+        jac = len(intersection) / len(union)
+        print(f'Jaccard: {jac:.3f}')
         
-        #intersections += len(intersection)
-        #unions += len(union)
+        intersections += len(intersection)
+        unions += len(union)
         
         if show_diff:
             only_in_1 = set_1 - set_2
@@ -339,14 +346,17 @@ def compare_annos(
             
         print(f'{"=" * 80}')
         
-    #macro_jac = intersections / unions
-    #print(f'Macro Jaccard: {macro_jac:.3f}')
+    macro_jac = intersections / unions
+    print(f'Macro Jaccard: {macro_jac:.3f}')
 
 # === 单元测试 ===
 if __name__ == '__main__':
 
     # 打印日志信息
     logging.basicConfig(level=logging.INFO)
+    
+    llm_model = 'deepseek-v3.2'
+    enable_thinking = False
 
     # === 测试中文 ===
 
@@ -365,7 +375,13 @@ if __name__ == '__main__':
 
     print(f'\n测试 2: LLM 中文语义标注')
     print(f'{"=" * 30}')
-    zh_sem_tagger = SEMTagger(lang=lang, tagset=tagset, mode='llm')
+    zh_sem_tagger = SEMTagger(
+        lang=lang,
+        tagset=tagset,
+        mode='llm',
+        llm_model=llm_model,
+        enable_thinking=enable_thinking,
+    )
     zh_doc = zh_sem_tagger.tag(zh_text)
     print(f'[标注结果]:{zh_doc}')
 
@@ -386,6 +402,12 @@ if __name__ == '__main__':
     
     print(f'\n测试 4: LLM 英文语义标注')
     print(f'{"=" * 30}')
-    en_sem_tagger = SEMTagger(lang=lang, tagset=tagset, mode='llm')
+    en_sem_tagger = SEMTagger(
+        lang=lang,
+        tagset=tagset,
+        mode='llm',
+        llm_model=llm_model,
+        enable_thinking=enable_thinking,
+    )
     en_doc = en_sem_tagger.tag(en_text)
     print(f'[标注结果]:{en_doc}')

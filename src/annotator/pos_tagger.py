@@ -5,10 +5,12 @@
 
 import json
 import logging
-
-from tqdm import tqdm
-import pandas as pd
 from collections import defaultdict
+
+import pandas as pd
+from tqdm import tqdm
+
+from src.utils import clean_text, split_sents
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -20,50 +22,49 @@ class POSTagger:
         tagset,
         mode='local',
         llm_model=None,
-        device=None,
+        enable_thinking=False,
     ):
         """
-        :param lang:        语种 str
-                            [chinese]:  中文
-                            [english]:  英文
-        :param tagset:      标注集 str
-                            [pku]:      北大 PKU 标注集
-                            https://hanlp.hankcs.com/docs/annotations/pos/pku.html
-                            [ctb]:      中文宾州树库 CTB 标注集
-                            https://hanlp.hankcs.com/docs/annotations/pos/ctb.html
-                            [ud]:       通用依存树库 UD 标注集
-                            https://universaldependencies.org/u/pos/index.html
-                            [ptb]:      英文宾州树库 PTB 标注集
-                            https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
-                            [claws]:    兰卡斯特大学 CLAWS7 标注集
-                            https://ucrel.lancs.ac.uk/claws7tags.html
-                            注意: claws 标注仅支持 llm 模式
-        :param mode:        标注模式 str
-                            [local]:    本地预训练模型
-                            [llm]:      大模型 API
-        :param llm_model:   大模型名称 str | None
-                            [deepseek-v3.2]:  DeepSeek V3.2
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2868565
-                            [glm-4.7]:        GLM-4.7
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
-                            [qwen3-max]:      Qwen3-Max
-                            https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
-                            [None]:           DeepSeek V3.2
-        :param device:      设备 int | None
-                            [-1]:     CPU
-                            [0]:      GPU
-                            [None]:   自动选择  
-        :return:            POSTagger Pipeline 实例
+        :param lang:            语种 str
+                                [chinese]:  中文
+                                [english]:  英文
+        :param tagset:          标注集 str
+                                [pku]:      北大 PKU 中文赋码集
+                                https://hanlp.hankcs.com/docs/annotations/pos/pku.html
+                                [claws]:    兰卡斯特大学 CLAWS7 英文赋码集(仅支持 llm 模式)
+                                https://ucrel.lancs.ac.uk/claws7tags.html
+                                [ud]:       通用依存树库 UD 英文赋码集
+                                https://universaldependencies.org/u/pos/index.html
+                                [ptb]:      宾州树库 PTB 英文赋码集
+                                https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
+        :param mode:            标注模式 str
+                                [local]:    本地预训练模型
+                                [llm]:      大模型 API
+        :param llm_model:       大模型名称 str | None
+                                [kimi-k2.5]:      Kimi-k2.5
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2948482
+                                [deepseek-v3.2]:  DeepSeek V3.2
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2868565
+                                [glm-4.7]:        GLM-4.7
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
+                                [qwen3-max]:      Qwen3-Max
+                                https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
+                                [None]:           DeepSeek V3.2
+        :param enable_thinking: 思考模式 | Boolean
+                                [True]:     开启
+                                [False]:    关闭          
+        :return:                POSTagger Pipeline 实例                               
         """
+        
         # 参数校验
         SUPPORTED = {
             'chinese': {
-                'local': {'pku', 'ctb'},
-                'llm':   {'pku', 'ctb'},
+                'local': {'pku'},
+                'llm':   {'pku'},
             },
             'english': {
                 'local': {'ptb', 'ud'},
-                'llm':   {'ptb', 'ud', 'claws'},
+                'llm':   {'claws'},
             },
         }
         
@@ -82,19 +83,17 @@ class POSTagger:
         self.lang = lang
         self.tagset = tagset
         self.mode = mode
+        self.enable_thinking = enable_thinking
         
         if mode == 'local':
             from src.annotator.tokenizer import Tokenizer
-            self.tokenizer = Tokenizer(lang=lang)
-            
+            self.tokenizer = Tokenizer(lang=lang, mode='local')
             if lang == 'chinese':
+            
                 # === 加载中文词性标注模型 ===
                 # 模型介绍：https://hanlp.hankcs.com/docs/api/hanlp/pretrained/pos.html
                 # 使用方法：https://github.com/hankcs/HanLP/blob/doc-zh/plugins/hanlp_demo/hanlp_demo/zh/pos_stl.ipynb
                 # 并行处理：https://github.com/hankcs/HanLP/blob/doc-zh/plugins/hanlp_demo/hanlp_demo/zh/demo_pipeline.py
-                # --- CTB 标注集 ---
-                # CTB9_POS_ELECTRA_SMALL
-                # 下载地址：https://file.hankcs.com/hanlp/pos/pos_ctb_electra_small_20220215_111944.zip
                 # --- PKU 标注集 ---
                 # PKU_POS_ELECTRA_SMALL
                 # 下载地址：https://file.hankcs.com/hanlp/pos/pos_pku_electra_small_20220217_142436.zip
@@ -102,15 +101,12 @@ class POSTagger:
                 import hanlp
                 
                 logger.info('加载 HanLP 中文词性标注模型 ...')
-                if tagset == 'ctb':
-                    pos_tagger = hanlp.load(hanlp.pretrained.pos.CTB9_POS_ELECTRA_SMALL, devices=device)
-                elif tagset == 'pku':
-                    pos_tagger = hanlp.load(hanlp.pretrained.pos.PKU_POS_ELECTRA_SMALL, devices=device)
-                
+                pos_tagger = hanlp.load(hanlp.pretrained.pos.PKU_POS_ELECTRA_SMALL)
                 self.pipeline = hanlp.pipeline() \
                     .append(pos_tagger, input_key='tok', output_key='pos')
                 logger.info('HanLP 中文词性标注模型加载完毕！')
             elif lang == 'english':
+                
                 # === 加载英文词性标注模型 ===
                 # 模型介绍：https://spacy.io/models/en#en_core_web_trf
                 # 使用方法：https://spacy.io/usage/linguistic-features
@@ -125,13 +121,11 @@ class POSTagger:
         elif mode == 'llm':
             from src.llm_client import LLMClient
             from src.prompt import pos_tag_prompt
-            from hanlp.utils.rules import split_sentence
             
             logger.info('加载 LLM 词性标注模型 ...')
-            self.pipeline = LLMClient(model=llm_model)
+            self.pipeline = LLMClient(model=llm_model, enable_thinking=enable_thinking)
             self.llm_model = self.pipeline.default_model
             self.prompt = pos_tag_prompt
-            self.splitter = split_sentence
             logger.info('LLM 词性标注模型加载完毕！')
     
     # A wrapper for _local_tag() and _llm_tag()
@@ -139,6 +133,7 @@ class POSTagger:
         """
         :param text:    输入文本 str 
         :return:        标注结果 dict
+                        [text]:  输入文本 str
                         [sent]:  分句结果 [list]
                         [tok]:   分词结果 [list]
                         [pos]:   赋码结果 [list]
@@ -150,38 +145,41 @@ class POSTagger:
             
     def _llm_tag(self, text):
         tagset = self.tagset.upper()
+            
         if self.lang == 'english':
-            scheme_name = f'EN_{tagset}_NAME'
+            prompt_name = f'EN_{tagset}_PROMPT'
             example_name = f'EN_{tagset}_EXAMPLE'
             tagset_name = f'EN_{tagset}_TAGSET'
         elif self.lang == 'chinese':
-            scheme_name = f'ZH_{tagset}_NAME'
+            prompt_name = f'ZH_{tagset}_PROMPT'
             example_name = f'ZH_{tagset}_EXAMPLE'
             tagset_name = f'ZH_{tagset}_TAGSET'
         
+        prompt_tmpl = getattr(self.prompt, prompt_name)
         example = getattr(self.prompt, example_name)
-        scheme = getattr(self.prompt, scheme_name)
         tagset = getattr(self.prompt, tagset_name)
         
         result = {}
-        sents = list(self.splitter(text))
-        text = ' '.join(sents)
-        result['sent'] = sents
-
+        text = clean_text(text)
+        sents = split_sents(text, lang=self.lang)
+        
+        result['text'] = text
+        result['sent'] = sents['sent']
+        
         # 构造 Prompt
-        prompt = self.prompt.PROMPT.format(
-            lang=self.lang,
-            scheme=scheme,
+        prompt = prompt_tmpl.format(
             tagset=tagset,
             example=example,
+            #tokens=json.dumps(toks, ensure_ascii=False),
             text=json.dumps(text, ensure_ascii=False),
         )
         #print(prompt)
         
         # 调用大模型
         try:
-            response = self.pipeline.get_json_response(
-                prompt=prompt, 
+            response = self.pipeline.get_response(
+                prompt=prompt,
+                json_output=True,
             )
             #print(response)
             tokens, tags = self._convert_llm_response(response)
@@ -196,8 +194,10 @@ class POSTagger:
     def _local_tag(self, text):
         result = {}
         tok_sents = self.tokenizer.tokenize(text)
-        text = ' '.join(tok_sents['sent'])
+        #print(tok_sents)
+        #text = ' '.join(tok_sents['sent'])
         toks = [tok for sent in tok_sents['tok'] for tok in sent]
+        result['text'] = tok_sents['text']
         result['sent'] = tok_sents['sent']
         
         if self.lang == 'english':
@@ -275,7 +275,7 @@ def compare_annos(
     annos_2_name,
     show_diff=True,
 ):
-    #intersections, unions = 0, 0
+    intersections, unions = 0, 0
     for anno_1, anno_2 in zip(annos_1, annos_2):
         print(f'\n[ID]: {anno_1["id"]}')
         print(f'{anno_1["text"]}')
@@ -294,11 +294,11 @@ def compare_annos(
         
         intersection = set_1 & set_2
         union = set_1 | set_2
-        #jac = len(intersection) / len(union)
-        #print(f'Jaccard: {jac:.3f}')
+        jac = len(intersection) / len(union)
+        print(f'Jaccard: {jac:.3f}')
         
-        #intersections += len(intersection)
-        #unions += len(union)
+        intersections += len(intersection)
+        unions += len(union)
         
         if show_diff:
             only_in_1 = set_1 - set_2
@@ -308,19 +308,21 @@ def compare_annos(
             
         print(f'{"=" * 80}')
         
-    #macro_jac = intersections / unions
-    #print(f'Macro Jaccard: {macro_jac:.3f}')
+    macro_jac = intersections / unions
+    print(f'Macro Jaccard: {macro_jac:.3f}')
         
 if __name__ == '__main__':
 
     # 打印日志信息
     logging.basicConfig(level=logging.INFO)
+    
+    llm_model = 'deepseek-v3.2'
+    enable_thinking = False
 
     # === 测试中文 ===
     
     lang = 'chinese'
-    #tagset = 'pku'
-    tagset = 'ctb'
+    tagset = 'pku'
     zh_text = '那天晚上我没走掉。 陈清扬把我拽住，以伟大友谊的名义叫我留下来。'
     print(f'\n[中文赋码集]：{tagset}')
     print(f'[中文文本]：{zh_text}')
@@ -335,30 +337,44 @@ if __name__ == '__main__':
 
     print(f'\n测试 2: LLM 中文词性标注')
     print(f'{"=" * 30}')
-    zh_pos_tagger = POSTagger(lang=lang, tagset=tagset, mode='llm')
+    zh_pos_tagger = POSTagger(
+        lang=lang,
+        tagset=tagset,
+        mode='llm',
+        llm_model=llm_model,
+        enable_thinking=enable_thinking,
+    )
     zh_doc = zh_pos_tagger.tag(zh_text)
     print(f'[标注结果]:{zh_doc}')
     
     # === 测试英文 ===
     
     lang = 'english'
-    tagset = 'ptb'
+    #tagset = 'ptb'
     #tagset = 'ud'
-    #tagset = 'claws'
+    tagset = 'claws'
     en_text = 'Chen Qingyang caught me and asked me to stay in the name of our great friendship.'
     
     print(f'\n[英文赋码集]：{tagset}')
     print(f'[英文文本]：{en_text}')
     print(f'{"=" * 30}')
     
+    '''
     print(f'\n测试 3: Spacy 英文词性标注')
     print(f'{"=" * 30}')
     en_pos_tagger = POSTagger(lang=lang, tagset=tagset, mode='local')
     en_doc = en_pos_tagger.tag(en_text)
     print(f'[标注结果]:{en_doc}')
+    '''
     
     print(f'\n测试 4: LLM 英文词性标注')
     print(f'{"=" * 30}')
-    en_pos_tagger = POSTagger(lang=lang, tagset=tagset, mode='llm')
+    en_pos_tagger = POSTagger(
+        lang=lang,
+        tagset=tagset,
+        mode='llm',
+        llm_model=llm_model,
+        enable_thinking=enable_thinking,
+    )
     en_doc = en_pos_tagger.tag(en_text)
     print(f'[标注结果]：{en_doc}')
