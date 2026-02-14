@@ -285,7 +285,7 @@ ZH_UD_EXAMPLE = """"### Example 1:
 
 ### Example 2:
 
-**Text**: "把把书放在桌子上。"
+**Text**: "他把书放在桌子上。"
 
 **Output JSON**:
 [
