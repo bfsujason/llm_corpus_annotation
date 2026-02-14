@@ -33,15 +33,17 @@ pip install stanza
 pip install pymusas
 ```
 
-- Apply for an API Key
+- Apply for an API Key to access LLMs
 
 1. Create a free account on [Aliyun Bailian (阿里云百炼)](https://bailian.console.aliyun.com/)
-2. Go to API Key management in the Bailian console and generate a new API Key (it starts with `sk`)
+2. Go to API Key management in the Bailian console and generate a new key (it starts with `sk`)
 3. Copy the generated key in the configuration file [config](./config)
 
 ## Usage
 
 You can refer to the Jupyter Notebooks in the directory [notebook](./notebook) for more usage
+
+All the prompts used for annotation are stored in the directory [src/prompt](./src/prompt)
 
 ```python
 # === Import LLM Annotators ===
@@ -86,7 +88,7 @@ llm_zh_pku_tagger = POSTagger(
     enable_thinking=enable_thinking,
 )
 
-# annotate chinese text
+# annotate Chinese text
 llm_zh_pku_tagger.tag(zh_text)
 
 # --- English POS tagging ---
@@ -104,7 +106,7 @@ llm_en_claws_tagger = POSTagger(
     enable_thinking=enable_thinking,
 )
 
-# annotate english text
+# annotate English text
 llm_en_claws_tagger.tag(en_text)
 
 # === Dependency Parsing ===
@@ -124,7 +126,7 @@ llm_zh_ud_parer = DEPParser(
     enable_thinking=enable_thinking,
 )
 
-# annotate chinese text
+# annotate Chinese text
 llm_zh_ud_parer.tag(zh_text)
 
 # --- English dependency parsing ---
@@ -142,7 +144,7 @@ llm_en_ud_parer = DEPParser(
     enable_thinking=enable_thinking,
 )
 
-# annotate english text
+# annotate English text
 llm_en_ud_parer.tag(en_text)
 
 # === Semantic Tagging ===
@@ -162,7 +164,7 @@ llm_zh_usas_tagger = SEMTagger(
     enable_thinking=enable_thinking,
 )
 
-# annotate chinese text
+# annotate Chinese text
 llm_zh_usas_tagger.tag(zh_text)
 
 # --- English semantic tagging ---
@@ -180,7 +182,7 @@ llm_en_usas_tagger = SEMTagger(
     enable_thinking=enable_thinking,
 )
 
-# annotate english text
+# annotate English text
 llm_en_usas_tagger.tag(en_text)
 ```
 
