@@ -49,7 +49,6 @@ class SEMTagger:
         :param enable_thinking: 思考模式 | Boolean
                                 [True]:     开启
                                 [False]:    关闭
-        :return:                DEPParser Pipeline 实例
         :return:                SEMTagger Pipeline 实例
         """
         
