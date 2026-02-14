@@ -277,7 +277,8 @@ ZH_UD_EXAMPLE = """"### Example 1:
 [
     {{'token': '他', 'head': '是', 'rel':'nsubj', 'desc': 'Nominal subject'}},
     {{'token': '是', 'head': '学生', 'rel':'cop', 'desc': 'Copula'}},
-    {{'token': '一个', 'head': '学生', 'rel':'nummod', 'desc': 'Numeric modifier'}},
+    {{'token': '一', 'head': '学生', 'rel':'nummod', 'desc': 'Numeric modifier'}},
+    {{'token': '个', 'head': '一', 'rel':'clf', 'desc': 'Classifier'}},
     {{'token': '好', 'head': '学生', 'rel':'amod', 'desc': 'Root of sentence'}},
     {{'token': '学生', 'head': 'ROOT', 'rel':'root', 'desc': 'Adjectival modifier'}},
     {{'token': '。', 'head': '学生', 'rel':'punct', 'desc': 'Punctuation'}},
