@@ -120,7 +120,6 @@ class Tokenizer:
             prompt = prompt_tmpl.format(
                 text=json.dumps(sent, ensure_ascii=False),
             )
-            #print(prompt)
             
             # 调用大模型
             try:
@@ -128,7 +127,7 @@ class Tokenizer:
                     prompt=prompt,
                     json_output=True,
                 )
-                #print(response)
+                
                 tokens = self._convert_llm_response(response)
                 result['tok'].append(tokens)
                 
