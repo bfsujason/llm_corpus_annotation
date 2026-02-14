@@ -10,37 +10,6 @@ import pandas as pd
 #from spacy import displacy
 from sentence_splitter import SentenceSplitter
 
-'''
-from spacy import displacy
-from IPython.display import display, HTML
-import IPython.core.display as core_display
-core_display.display = display
-core_display.HTML = HTML
-
-# 自定义依存关系数据
-doc = {
-    "words": [
-        {"text": "我", "tag": ""},
-        {"text": "爱", "tag": ""},
-        {"text": "自然语言", "tag": ""},
-        {"text": "处理", "tag": ""}
-    ],
-    "arcs": [
-        {"start": 0, "end": 1, "label": "nsubj", "dir": "left"},
-        {"start": 1, "end": 3, "label": "dobj", "dir": "right"},
-        {"start": 2, "end": 3, "label": "compound", "dir": "left"}
-    ]
-}
-
-# 渲染可视化
-displacy.render(doc, style="dep", manual=True)
-
-html = displacy.render(doc, style="dep", manual=True, jupyter=False)
-
-with open("dep.html", "w", encoding="utf-8") as f:
-    f.write(html)
-'''
-
 def load_data(file_name, limit=None):
     """
     读取 TSV 格式双语语料
