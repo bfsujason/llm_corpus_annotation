@@ -8,6 +8,182 @@ This repository explores the application of LLMs for annotation tasks in corpus 
 - **Dependency Parsing** — Syntactic parsing following [Universal Dependency 2.0](https://universaldependencies.org/u/dep/)
 - **Semantic Tagging** — Semantic category annotation based on the [UCREL Semantic Analysis System](https://ucrel.lancs.ac.uk/usas/)
 
+## Installation
+
+- Clone the repository
+
+```bash
+git clone https://github.com/bfsujason/llm_corpus_annotation.git
+cd llm_corpus_annotation
+```
+
+- Install required dependencies for LLM annotation
+
+```bash
+pip install openai
+pip install diskcache
+pip install sentence_splitter
+```
+
+- Install optional dependencies for annotation using local models
+
+```bash
+pip install hanlp
+pip install stanza
+pip install pymusas
+```
+
+- Apply for an API Key
+
+1. Create a free account on [Aliyun Bailian (阿里云百炼)](https://bailian.console.aliyun.com/)
+2. Go to API Key management in the Bailian console and generate a new API Key (it starts with `sk`)
+3. Copy the generated key in the configuration file [config](./config)
+
+## Usage
+
+You can refer to the Jupyter Notebooks in the directory [notebook](./notebook) for more usage
+
+```python
+# === Import LLM Annotators ===
+
+from src.annotator.pos_tagger import POSTagger
+from src.annotator.dep_parser import DEPParser
+from src.annotator.sem_tagger import SEMTagger
+
+# === LLM setting ===
+
+# set tagging mode
+# llm | local
+mode = 'llm'
+
+# specify model name
+# deepseek-v3.2 | kimi-k2.5 | glm-4.7 | qwen3-max
+llm_model = 'deepseek-v3.2
+
+# turn on/off LLM thinking mode
+enable_thinking = False
+
+# === Input text to be annotated ===
+# Note: Only support Chinese and English
+
+zh_text = "那天晚上我没走掉。陈清扬把我拽住，以伟大友谊的名义叫我留下来。"
+en_text = "I did not leave that night - Chen Qingyang caught me and asked me to stay in the name of our great friendship."
+
+# === POS Tagging ===
+
+# --- Chinese POS tagging ---
+
+# choose language and tagset
+lang = 'chinese'
+tagset = 'pku'
+
+# load Chinse POS tagger
+llm_zh_pku_tagger = POSTagger(
+    lang=lang,
+    tagset=tagset,
+    mode=mode,
+    llm_model=llm_model,
+    enable_thinking=enable_thinking,
+)
+
+# annotate chinese text
+llm_zh_pku_tagger.tag(zh_text)
+
+# --- English POS tagging ---
+
+# choose language and tagset
+lang = 'english'
+tagset = 'claws'
+
+# load English POS tagger
+llm_en_claws_tagger = POSTagger(
+    lang=lang,
+    tagset=tagset,
+    mode=mode,
+    llm_model=llm_model,
+    enable_thinking=enable_thinking,
+)
+
+# annotate english text
+llm_en_claws_tagger.tag(en_text)
+
+# === Dependency Parsing ===
+
+# --- Chinese dependency parsing ---
+
+# choose language and tagset
+lang = 'chinese'
+tagset = 'ud'
+
+# load Chinese dependency parser
+llm_zh_ud_parer = DEPParser(
+    lang=lang,
+    tagset=tagset,
+    mode=mode,
+    llm_model=llm_model,
+    enable_thinking=enable_thinking,
+)
+
+# annotate chinese text
+llm_zh_ud_parer.tag(zh_text)
+
+# --- English dependency parsing ---
+
+# choose language and tagset
+lang = 'english'
+tagset = 'ud'
+
+# load English dependency parser
+llm_en_ud_parer = DEPParser(
+    lang=lang,
+    tagset=tagset,
+    mode=mode,
+    llm_model=llm_model,
+    enable_thinking=enable_thinking,
+)
+
+# annotate english text
+llm_en_ud_parer.tag(en_text)
+
+# === Semantic Tagging ===
+
+# --- Chinese semantic tagging ---
+
+# choose language and tagset
+lang = 'chinese'
+tagset = 'usas'
+
+# load Chinese semantic tagger
+llm_zh_usas_tagger = SEMTagger(
+    lang=lang,
+    tagset=tagset,
+    mode=mode,
+    llm_model=llm_model,
+    enable_thinking=enable_thinking,
+)
+
+# annotate chinese text
+llm_zh_usas_tagger.tag(zh_text)
+
+# --- English semantic tagging ---
+
+# choose language and tagset
+lang = 'english'
+tagset = 'usas'
+
+# load English semantic tagger
+llm_en_usas_tagger = SEMTagger(
+    lang=lang,
+    tagset=tagset,
+    mode=mode,
+    llm_model=llm_model,
+    enable_thinking=enable_thinking,
+)
+
+# annotate english text
+llm_en_usas_tagger.tag(en_text)
+```
+
 ## Acknowledgments & Credits
 
 ### Academic Advisors
