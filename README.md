@@ -14,7 +14,7 @@ This repository explores the application of LLMs for annotation tasks in corpus 
 
 **Register / Log in** — Go to [Aliyun Bailian](https://bailian.console.aliyun.com/) and sign in with your account. Create a free account if you do not have one.
 
-**Create a new API key** — Genrate a new API key (it starts with `sk-`) and store it the file [src/config](./src/config).
+**Create a new API key** — Genrate a new API key (it starts with `sk-`) and store it the file [src/config](./config).
 
 
 ## Acknowledgments & Credits
