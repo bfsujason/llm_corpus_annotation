@@ -42,7 +42,6 @@ class LLMClient:
         self.temperature = temperature
         self.enable_thinking = enable_thinking
         self.cache = diskcache.Cache(Config.LLM_CACHE_DIR)
-        #self.cache_new = diskcache.Cache('C:/llm_annotation_v8/data/llm_cache_new')
         
         # 验证配置
         logger.info(f'初始化完毕！Base URL：{Config.LLM_BASE_URL} Model：{self.default_model}')
@@ -95,7 +94,6 @@ class LLMClient:
         
         if cache_key in self.cache:
             logger.info('Found in cache!')
-            #self.cache_new[cache_key] = self.cache[cache_key]
             return self.cache[cache_key]
         
         # 设置参数
