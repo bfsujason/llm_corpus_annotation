@@ -28,4 +28,5 @@ if __name__ == '__main__':
     print(f'Base URL:    {Config.LLM_BASE_URL}')
     print(f'API Key:     {Config.LLM_API_KEY[:5]}******')
     print(f'Model Name:  {Config.LLM_MODEL_NAME}')
-    print(f'Cache Dir:   {Config.LLM_CACHE_DIR.replace("\\", "/")}')
+    cache_dir = Config.LLM_CACHE_DIR.replace("\\", "/")
+    print(f'Cache Dir:   {cache_dir}')
