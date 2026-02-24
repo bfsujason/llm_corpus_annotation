@@ -2,10 +2,9 @@
 
 ## Overview
 
-This repository explores the application of LLMs for annotation tasks in corpus linguistics. It provides tools and experiments for automating three core annotation workflows:
+This repository explores the application of LLMs for annotation tasks in corpus linguistics.
 
 - **POS Tagging** — Part-of-speech tagging guided by established tagsets such as [PKU](http://sighan.cs.uchicago.edu/bakeoff2005/data/pku_spec.pdf) and [CLAWS7](https://ucrel.lancs.ac.uk/claws7tags.html)
-- **Dependency Parsing** — Syntactic parsing following [Universal Dependency 2.0](https://universaldependencies.org/u/dep/)
 - **Semantic Tagging** — Semantic category annotation based on the [UCREL Semantic Analysis System](https://ucrel.lancs.ac.uk/usas/)
 
 ## Installation
@@ -29,7 +28,6 @@ pip install sentence_splitter
 
 ```bash
 pip install hanlp
-pip install stanza
 pip install pymusas
 ```
 
@@ -49,7 +47,6 @@ All the prompts used for annotation are stored in the directory [src/prompt](./s
 # === Import LLM Annotators ===
 
 from src.annotator.pos_tagger import POSTagger
-from src.annotator.dep_parser import DEPParser
 from src.annotator.sem_tagger import SEMTagger
 
 # === LLM Setting ===
@@ -59,12 +56,8 @@ from src.annotator.sem_tagger import SEMTagger
 mode = "llm"
 
 # specify model name
-# deepseek-v3.2 | kimi-k2.5 | glm-4.7 | qwen3-max
-llm_model = "deepseek-v3.2"
-
-# turn on/off LLM thinking mode
-# True | False
-enable_thinking = False
+# kimi-k2.5 | glm-5 | deepseek-v3.2 | qwen3-max
+llm_model = "kimi-k2.5"
 
 # === Input text to be annotated ===
 # Note: Only support Chinese and English
@@ -86,7 +79,6 @@ llm_zh_pku_tagger = POSTagger(
     tagset=tagset,
     mode=mode,
     llm_model=llm_model,
-    enable_thinking=enable_thinking,
 )
 
 # annotate Chinese text
@@ -104,49 +96,10 @@ llm_en_claws_tagger = POSTagger(
     tagset=tagset,
     mode=mode,
     llm_model=llm_model,
-    enable_thinking=enable_thinking,
 )
 
 # annotate English text
 llm_en_claws_tagger.tag(en_text)
-
-# === Dependency Parsing ===
-
-# --- Chinese dependency parsing ---
-
-# choose language and tagset
-lang = "chinese"
-tagset = "ud"
-
-# load Chinese dependency parser
-llm_zh_ud_parer = DEPParser(
-    lang=lang,
-    tagset=tagset,
-    mode=mode,
-    llm_model=llm_model,
-    enable_thinking=enable_thinking,
-)
-
-# annotate Chinese text
-llm_zh_ud_parer.tag(zh_text)
-
-# --- English dependency parsing ---
-
-# choose language and tagset
-lang = "english"
-tagset = "ud"
-
-# load English dependency parser
-llm_en_ud_parer = DEPParser(
-    lang=lang,
-    tagset=tagset,
-    mode=mode,
-    llm_model=llm_model,
-    enable_thinking=enable_thinking,
-)
-
-# annotate English text
-llm_en_ud_parer.tag(en_text)
 
 # === Semantic Tagging ===
 
@@ -162,7 +115,6 @@ llm_zh_usas_tagger = SEMTagger(
     tagset=tagset,
     mode=mode,
     llm_model=llm_model,
-    enable_thinking=enable_thinking,
 )
 
 # annotate Chinese text
@@ -180,7 +132,6 @@ llm_en_usas_tagger = SEMTagger(
     tagset=tagset,
     mode=mode,
     llm_model=llm_model,
-    enable_thinking=enable_thinking,
 )
 
 # annotate English text
@@ -202,7 +153,6 @@ We are grateful to the following scholars for their valuable insights and sugges
 - **[Multilingual-USAS](https://github.com/UCREL/Multilingual-USAS)** - UCREL's Multilingual USAS lexicon
 - **[PyMUSAS](https://github.com/UCREL/pymusas)** - Python Multilingual USAS for semantic tagging
 - **[spaCy](https://spacy.io/)** - Industrial-strength Natural Language Processing in Python
-- **[Stanza](https://stanfordnlp.github.io/stanza/)** - Stanford NLP Group's official Python library with neural network models for many languages
 
 ### Important Note on Methodology
 
@@ -210,7 +160,6 @@ We are grateful to the following scholars for their valuable insights and sugges
 
 The annotation schemas, linguistic categories, and evaluation criteria used in our LLM prompts draw heavily from:
 - The part-of-speech tagging systems implemented in CLAWS7, HanLP and spaCy
-- The dependency parsing approaches from Stanza
 - The semantic tagging framework from UCREL's Multilingual-USAS & PyMUSAS
 
 **This project explores how LLMs can be leveraged for corpus annotation when guided by the expert knowledge encoded in these tools.**
