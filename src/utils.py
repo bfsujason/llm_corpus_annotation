@@ -33,25 +33,6 @@ def load_data(file_name, limit=None):
         return corpus
     except Exception as e:
        print(f'读取文件 {filename} 失败: {e}')
-        
-def load_claws_tag(file_name):
-    result = []
-    with open(file_name, 'rt', encoding='utf-8') as fin:
-        for i, line in enumerate(fin):
-            record = {}
-            record['id'] = f'{i+1:05d}'
-            line = line.strip()
-            text, tags = line.split('\t')
-            tok, pos = [], []
-            for tag in tags.split():
-               _tok, _pos = tag.split('_')
-               tok.append(_tok)
-               pos.append(_pos)
-            record['text'] = text
-            record['tok'] = tok
-            record['pos'] = pos
-            result.append(record)
-    return result
     
 def clean_text(text):
     clean_text = []

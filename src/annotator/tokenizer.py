@@ -120,6 +120,7 @@ class Tokenizer:
             prompt = prompt_tmpl.format(
                 text=json.dumps(sent, ensure_ascii=False),
             )
+            #print(prompt)
             
             # 调用大模型
             try:
@@ -127,7 +128,7 @@ class Tokenizer:
                     prompt=prompt,
                     json_output=True,
                 )
-                
+                #print(response)
                 tokens = self._convert_llm_response(response)
                 result['tok'].append(tokens)
                 
@@ -149,79 +150,7 @@ class Tokenizer:
     @staticmethod
     def _convert_llm_response(response):
         tokens = response
-        return tokens
-        
-def annotate_data(data, annotator):
-    annos = []
-    
-    # 逐行遍历所有数据
-    for index, text in tqdm(data.items(), total=len(data), desc="Tokenizing"):
-        try:
-            record = defaultdict(list)
-            record['id'] = f'{index:05d}'
-            
-            # 标注文本
-            anno = annotator.tokenize(text)
-        
-            # 提取标注结果
-            record['text'] = anno['text']
-            record['sent'] = anno['sent']
-            record['tok'] = anno['tok']
-            annos.append(record)
-        except Exception as e:
-            print(f'Error at index {index}: {e}')
-            continue
-            
-    return annos
-    
-def display_anno(anno):
-    print(f'\n[ID]: {anno["id"]}')
-    print(f'{anno["text"]}')
-    print(f'{'-' * 80}')
-    tags = [tok for sent_tok in anno['tok'] for tok in sent_tok]
-    print(tags)
-    print(f'{'=' * 80}')
-    
-def compare_annos(
-    annos_1,
-    annos_2,
-    annos_1_name,
-    annos_2_name,
-    show_diff=True,
-):
-    intersections, unions = 0, 0
-    for anno_1, anno_2 in zip(annos_1, annos_2):
-        print(f'\n[ID]: {anno_1["id"]}')
-        print(f'{anno_1["text"]}')
-        print(f'{"-" * 80}')
-        
-        anno_1_tok = anno_1['tok']
-        anno_1_tags = [tok for sent_tok in anno_1_tok for tok in sent_tok]
-        
-        anno_2_tok = anno_2['tok']
-        anno_2_tags = [tok for sent_tok in anno_2_tok  for tok in sent_tok]
-        
-        set_1 = set(anno_1_tags)
-        set_2 = set(anno_2_tags)
-        
-        intersection = set_1 & set_2
-        union = set_1 | set_2
-        jac = len(intersection) / len(union)
-        print(f'Jaccard: {jac:.3f}')
-        
-        intersections += len(intersection)
-        unions += len(union)
-        
-        if show_diff:
-            only_in_1 = set_1 - set_2
-            only_in_2 = set_2 - set_1
-            print(f"{annos_1_name}: {only_in_1}")
-            print(f"{annos_2_name}: {only_in_2}")
-            
-        print(f'{"=" * 80}')
-        
-    macro_jac = intersections / unions
-    print(f'Macro Jaccard: {macro_jac:.3f}')
+        return tokens 
    
 if __name__ == '__main__':
 

@@ -5,10 +5,6 @@
 
 import json
 import logging
-from collections import defaultdict
-
-import pandas as pd
-from tqdm import tqdm
 
 from src.utils import clean_text, split_sents
 
@@ -49,7 +45,7 @@ class POSTagger:
                                 https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=2974045
                                 [qwen3-max]:      Qwen3-Max
                                 https://bailian.console.aliyun.com/console?tab=api#/api/?type=model&url=3016807
-                                [None]:           DeepSeek V3.2
+                                [None]:           kimi-k2.5
         :param enable_thinking: 思考模式 | Boolean
                                 [True]:     开启
                                 [False]:    关闭          
@@ -173,6 +169,7 @@ class POSTagger:
             #tokens=json.dumps(toks, ensure_ascii=False),
             text=json.dumps(text, ensure_ascii=False),
         )
+        #print(prompt)
         
         # 调用大模型
         try:
@@ -180,7 +177,7 @@ class POSTagger:
                 prompt=prompt,
                 json_output=True,
             )
-
+            #print(response)
             tokens, tags = self._convert_llm_response(response)
             result['tok'] = tokens
             result['pos'] = tags
@@ -220,95 +217,6 @@ class POSTagger:
             tokens.append(item['token'])
             tags.append(item['tag'])
         return tokens, tags
-        
-def save_annos(annos, out_file):
-    rows = []
-    for anno in annos:
-        sents = anno['sent']
-        tags = [f'{tok}_{pos}' for tok, pos in zip(anno['tok'], anno['pos'])]
-        text = ' '.join(sents)
-        text_with_tag = ' '.join(tags)
-        rows.append({'text': text, 'text_with_tag': text_with_tag})
-
-    df = pd.DataFrame(rows)
-    df.to_csv(out_file, sep='\t', index=False, header=False, encoding='utf-8')
-        
-def annotate_data(data, annotator):
-    annos = []
-
-    # 逐行遍历所有数据
-    for index, text in tqdm(data.items(), total=len(data), desc="POS Tagging"):
-        try:
-            record = defaultdict(list)
-            record['id'] = f'{index:05d}'
-            
-            # 提取待标注文本
-            record['text'] = text
-            
-            # 标注选定文本
-            anno = annotator.tag(text)
-        
-            # 提取标注结果
-            record['sent'] = anno['sent']
-            record['tok'] = anno['tok']
-            record['pos'] = anno['pos']
-            annos.append(record)
-        except Exception as e:
-            print(f'Error at index {index}: {e}')
-            continue
-    
-    return annos
-    
-def display_anno(anno):
-    print(f'\n[ID]: {anno["id"]}')
-    print(f'{anno["text"]}')
-    print(f'{'-' * 80}')
-    tags = [(tok, pos) for tok, pos in zip (anno['tok'], anno['pos'])]
-    print(tags)
-    print(f'{'=' * 80}')
-    
-def compare_annos(
-    annos_1,
-    annos_2,
-    annos_1_name,
-    annos_2_name,
-    show_diff=True,
-):
-    intersections, unions = 0, 0
-    for anno_1, anno_2 in zip(annos_1, annos_2):
-        print(f'\n[ID]: {anno_1["id"]}')
-        print(f'{anno_1["text"]}')
-        print(f'{"-" * 80}')
-        
-        anno_1_tok = anno_1['tok']
-        anno_1_pos = anno_1['pos']
-        anno_1_tags = [(tok, pos) for tok, pos in zip (anno_1['tok'], anno_1['pos'])]
-        
-        anno_2_tok = anno_2['tok']
-        anno_2_tag = anno_2['pos']
-        anno_2_tags = [(tok, pos) for tok, pos in zip (anno_2['tok'], anno_2['pos'])]
-        
-        set_1 = set(anno_1_tags)
-        set_2 = set(anno_2_tags)
-        
-        intersection = set_1 & set_2
-        union = set_1 | set_2
-        jac = len(intersection) / len(union)
-        print(f'Jaccard: {jac:.3f}')
-        
-        intersections += len(intersection)
-        unions += len(union)
-        
-        if show_diff:
-            only_in_1 = set_1 - set_2
-            only_in_2 = set_2 - set_1
-            print(f"{annos_1_name}: {only_in_1}")
-            print(f"{annos_2_name}: {only_in_2}")
-            
-        print(f'{"=" * 80}')
-        
-    macro_jac = intersections / unions
-    print(f'Macro Jaccard: {macro_jac:.3f}')
         
 if __name__ == '__main__':
 

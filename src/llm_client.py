@@ -27,7 +27,7 @@ class LLMClient:
         初始化客户端
         从 Config 中读取 API_KEY, BASE_URL 和 CACHE_DIR
         
-        :param model: 模型名称 (默认为 deepseek-v3.2)
+        :param model: 模型名称 (默认为 kimi-k2.5)
         :param temperature: 采样温度系数 (默认为 0.1)
         :param enable_thinking: 思考模式 (默认为关闭)
         """
@@ -42,6 +42,7 @@ class LLMClient:
         self.temperature = temperature
         self.enable_thinking = enable_thinking
         self.cache = diskcache.Cache(Config.LLM_CACHE_DIR)
+        #self.cache_new = diskcache.Cache('C:/llm_annotation_v9/data/llm_cache_new')
         
         # 验证配置
         logger.info(f'初始化完毕！Base URL：{Config.LLM_BASE_URL} Model：{self.default_model}')
@@ -94,6 +95,7 @@ class LLMClient:
         
         if cache_key in self.cache:
             logger.info('Found in cache!')
+            #self.cache_new[cache_key] = self.cache[cache_key]
             return self.cache[cache_key]
         
         # 设置参数

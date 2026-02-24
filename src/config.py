@@ -15,7 +15,7 @@ class Config:
     # 阿里云百炼大模型：https://bailian.console.aliyun.com/
     LLM_BASE_URL = os.getenv('LLM_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
     LLM_API_KEY = os.getenv('LLM_API_KEY', 'EMPTY')
-    LLM_MODEL_NAME = os.getenv('LLM_MODEL_NAME', 'deepseek-v3.2')
+    LLM_MODEL_NAME = os.getenv('LLM_MODEL_NAME', 'kimi-k2.5')
     
     # 缓存目录设置
     _LLM_CACHE_DIR = os.getenv('LLM_CACHE_DIR', 'data/llm_cache')
