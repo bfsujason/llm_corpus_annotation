@@ -16,22 +16,10 @@ git clone https://github.com/bfsujason/llm_corpus_annotation.git
 cd llm_corpus_annotation
 ```
 
-- Install required dependencies for LLM annotation
+- Install required dependencies
 
 ```bash
-pip install openai
-pip install diskcache
-pip install sentence_splitter
-```
-
-- Install dependencies for annotation using local models
-
-```bash
-pip install hanlp
-pip install pymusas
-
-cd res
-for file in *.whl; do pip install "$file"; done
+bash install.sh
 ```
 
 - Apply for an API Key to access LLMs
