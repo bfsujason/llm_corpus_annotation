@@ -24,11 +24,14 @@ pip install diskcache
 pip install sentence_splitter
 ```
 
-- Install optional dependencies for annotation using local models
+- Install dependencies for annotation using local models
 
 ```bash
 pip install hanlp
 pip install pymusas
+
+cd res
+for file in *.whl; do pip install "$file"; done
 ```
 
 - Apply for an API Key to access LLMs
