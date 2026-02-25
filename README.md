@@ -13,7 +13,6 @@ This repository explores the application of LLMs for annotation tasks in corpus 
 
 ```bash
 git clone https://github.com/bfsujason/llm_corpus_annotation.git
-cd llm_corpus_annotation
 ```
 
 - Install required dependencies
